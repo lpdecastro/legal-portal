@@ -1,18 +1,29 @@
-# Current Feature
+# Current Feature: FND-05 React Layout
 
-<!-- Feature name and short description -->
+Shared public and authenticated layouts using Ant Design in `frontend/`.
 
 ## Status
 
-<!-- Not Started / In Progress / Completed -->
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- Public layout used by Login and Register pages.
+- Authenticated layout with sidebar, header, and main content area used by Dashboard, My Cases, Case Details, Submit Case, and Profile pages.
+- Sidebar navigation links to the existing routes and works across pages.
+- Active navigation item is highlighted (including nested routes, e.g. `/cases/:id` highlights My Cases).
+- Layouts adapt to desktop and mobile screens.
+- Consistent typography, colors, and spacing applied (Ant Design theme tokens).
 
 ## Notes
 
-<!-- Any extra notes -->
+- Spec: `context/epics/01-foundation/tasks/FND-05-layout.md`.
+- Out of scope: authentication and protected routes, actual page content/business functionality, API integration.
+- Routes already exist from FND-04 in `frontend/src/routes/paths.ts` / `router.tsx`; use nested layout routes (`<Outlet />`) rather than wrapping each page.
+- The remaining public pages (Forgot Password, Reset Password, Verify Email) should also sit under the public layout; Create Case ("Submit Case"), Edit Case, and Settings under the authenticated layout.
+- Header profile menu is a placeholder only (no logout/auth wiring yet).
+- Stack: antd 6, react-router 8. Follow `context/coding-standards.md` (no `any`, one component per file, hooks for reusable logic).
+- Verify in the browser (desktop + mobile widths) before committing; build must pass.
 
 ## History
 

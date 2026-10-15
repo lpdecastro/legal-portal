@@ -1,4 +1,6 @@
 import { createBrowserRouter, Navigate } from 'react-router'
+import AuthenticatedLayout from '../layouts/AuthenticatedLayout'
+import PublicLayout from '../layouts/PublicLayout'
 import CaseDetailsPage from '../pages/CaseDetailsPage'
 import CreateCasePage from '../pages/CreateCasePage'
 import DashboardPage from '../pages/DashboardPage'
@@ -17,17 +19,28 @@ import { paths } from './paths'
 export const router = createBrowserRouter([
   // TODO: redirect to /login when unauthenticated once auth lands.
   { path: '/', element: <Navigate to={paths.dashboard} replace /> },
-  { path: paths.login, element: <LoginPage /> },
-  { path: paths.register, element: <RegisterPage /> },
-  { path: paths.forgotPassword, element: <ForgotPasswordPage /> },
-  { path: paths.resetPassword, element: <ResetPasswordPage /> },
-  { path: paths.verifyEmail, element: <VerifyEmailPage /> },
-  { path: paths.dashboard, element: <DashboardPage /> },
-  { path: paths.cases, element: <MyCasesPage /> },
-  { path: paths.createCase, element: <CreateCasePage /> },
-  { path: paths.caseDetails, element: <CaseDetailsPage /> },
-  { path: paths.editCase, element: <EditCasePage /> },
-  { path: paths.profile, element: <ProfilePage /> },
-  { path: paths.settings, element: <SettingsPage /> },
+  {
+    element: <PublicLayout />,
+    children: [
+      { path: paths.login, element: <LoginPage /> },
+      { path: paths.register, element: <RegisterPage /> },
+      { path: paths.forgotPassword, element: <ForgotPasswordPage /> },
+      { path: paths.resetPassword, element: <ResetPasswordPage /> },
+      { path: paths.verifyEmail, element: <VerifyEmailPage /> },
+    ],
+  },
+  {
+    // TODO: guard with an auth check once protected routes land.
+    element: <AuthenticatedLayout />,
+    children: [
+      { path: paths.dashboard, element: <DashboardPage /> },
+      { path: paths.cases, element: <MyCasesPage /> },
+      { path: paths.createCase, element: <CreateCasePage /> },
+      { path: paths.caseDetails, element: <CaseDetailsPage /> },
+      { path: paths.editCase, element: <EditCasePage /> },
+      { path: paths.profile, element: <ProfilePage /> },
+      { path: paths.settings, element: <SettingsPage /> },
+    ],
+  },
   { path: '*', element: <NotFoundPage /> },
 ])

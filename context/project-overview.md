@@ -72,6 +72,31 @@ and manages their own legal cases.
 - submit a case
 - profile & settings
 
+## Routes
+
+- `/login` - Login
+- `/register` - Register
+- `/forgot-password` - Forgot Password
+- `/reset-password` - Reset Password
+- `/verify-email` - Verify Email
+- `/dashboard` - Dashboard
+- `/cases` - My Cases
+- `/cases/new` - Create Case
+- `/cases/:id` - Case Details
+- `/cases/:id/edit` - Edit Draft
+- `/profile` - Profile
+- `/settings` - Settings
+
+Routing Rules:
+
+- `/` → Redirect to `/dashboard` if authenticated, otherwise `/login`.
+- Public auth pages → Redirect authenticated users to `/dashboard` where appropriate.
+- Protected routes → Redirect unauthenticated users to `/login`, preserving the intended destination.
+- `/cases/new` and `/cases/:id/edit` → Use the same reusable case form component.
+- `/cases/:id/edit` → Allow editing drafts only.
+- `*` → Display a 404 Not Found page.
+- After registration → Redirect to `/cases/new` once authentication and any required email verification are complete.
+
 ## Flow
 
 register -> submit a case

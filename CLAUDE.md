@@ -33,6 +33,9 @@ Frontend (`cd frontend`):
 npm run dev       # Vite dev server
 npm run build     # tsc -b && vite build (type-check + bundle)
 npm run lint      # eslint .
+npm run test      # vitest run (single pass)
+npm run test:watch
+npx vitest run src/components/Placeholder.test.tsx   # single file
 npm run preview
 ```
 
@@ -40,12 +43,12 @@ Backend (`cd backend`, Maven wrapper, Java 21):
 
 ```bash
 ./mvnw spring-boot:run
-./mvnw test
+./mvnw test                               # needs Docker running (Testcontainers)
 ./mvnw test -Dtest=ClassName#methodName   # single test
 ./mvnw package
 ```
 
-No test runner is wired into the frontend yet; the plan is Vitest + React Testing Library + MSW (FND-06).
+Frontend tests use Vitest (jsdom) + React Testing Library + MSW, configured in `vite.config.ts` with setup in `src/test/setup.ts`. Render components with `renderWithProviders` (`src/test/render.tsx`) and mock API calls with `server.use(...)` from `src/test/mocks/server.ts`; unhandled requests fail the test (MSW 3: `onUnhandledFrame: 'error'`). Backend integration tests add `@Import(TestcontainersConfiguration.class)` to get a PostgreSQL 17 container via `@ServiceConnection`.
 
 ## Architecture (target)
 

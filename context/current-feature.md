@@ -1,18 +1,35 @@
-# Current Feature
+# Current Feature: FND-06 Testing Infrastructure
 
-<!-- Feature name and short description -->
+Set up automated testing for React and Spring Boot.
 
 ## Status
 
-<!-- Not Started / In Progress / Completed -->
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- Configure Vitest and React Testing Library in `frontend/`.
+- Configure MSW for mocking API responses.
+- Configure JUnit 5 and Mockito in `backend/`.
+- Configure Testcontainers with PostgreSQL for integration tests.
+- Add sample frontend and backend tests.
+- Add test scripts and commands.
+- `npm run test` runs frontend tests successfully.
+- `./mvnw test` runs backend tests successfully.
+- Sample React component test passes.
+- Sample Spring Boot test passes.
+- Testcontainers successfully starts PostgreSQL for an integration test.
+- Tests fail when an assertion is intentionally broken.
 
 ## Notes
 
-<!-- Any extra notes -->
+- Spec: `context/epics/01-foundation/tasks/FND-06-testing.md`.
+- Out of scope: authentication and business logic tests, Playwright E2E, CI pipeline configuration.
+- Testcontainers requires a running Docker daemon for `./mvnw test`.
+- Installed versions are newer than common docs: Vitest 5, MSW 3 (`onUnhandledFrame` replaces `onUnhandledRequest`), jest-dom 7, Testcontainers 2 (`testcontainers-postgresql` artifact, `org.testcontainers.postgresql.PostgreSQLContainer`).
+- Frontend: test config in `vite.config.ts`; `src/test/setup.ts` (jest-dom, RTL cleanup, matchMedia stub for antd, MSW lifecycle); `src/test/render.tsx` `renderWithProviders`; samples `Placeholder.test.tsx`, `test/mocks/server.test.ts`.
+- Backend: `TestcontainersConfiguration` (`@ServiceConnection` postgres:17-alpine); samples `PostgresContainerIntegrationTest`, `HealthEndpointTest` (MockMvc), `MockitoSetupTest`; surefire loads Mockito as a `-javaagent`.
+- Verified: both suites pass; intentionally broken assertions fail; backend passes with no `.env`. No UI changes, so no browser check needed beyond `npm run build`.
 
 ## History
 

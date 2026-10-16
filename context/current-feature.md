@@ -1,18 +1,26 @@
-# Current Feature
+# Current Feature: FND-07 Basic CI Pipeline
 
-<!-- Feature name and short description -->
+Set up GitHub Actions to automatically validate frontend and backend changes.
 
 ## Status
 
-<!-- Not Started / In Progress / Completed -->
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- GitHub Actions workflow that runs on every push to `main`
+- Install frontend and backend dependencies
+- Run frontend lint, tests, and build
+- Run backend tests and build
+- Use Java 21 and the project's Node.js version
+- CI fails if any required check fails; results visible in GitHub Actions
 
 ## Notes
 
-<!-- Any extra notes -->
+- Out of scope: AWS deployment, infrastructure provisioning, pull request checks.
+- Node pinned to 22 via `frontend/.nvmrc` (matches local v22; Vite 8 needs 20.19+/22.12+); CI reads it with `node-version-file`.
+- Backend tests use Testcontainers (PostgreSQL 17), so the CI runner needs Docker (available on `ubuntu-latest`).
+- Frontend commands run from `frontend/` (`npm ci`, `npm run lint`, `npm run test`, `npm run build`); backend from `backend/` via `./mvnw` (Java 21).
 
 ## History
 

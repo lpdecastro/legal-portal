@@ -13,21 +13,21 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 @Import(TestcontainersConfiguration.class)
 class PostgresContainerIntegrationTest {
 
-	@Autowired
-	private PostgreSQLContainer postgresContainer;
+    @Autowired
+    private PostgreSQLContainer postgresContainer;
 
-	@Autowired
-	private JdbcTemplate jdbcTemplate;
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
-	@Test
-	void datasourceConnectsToTestcontainersPostgres() {
-		assertThat(postgresContainer.isRunning()).isTrue();
+    @Test
+    void datasourceConnectsToTestcontainersPostgres() {
+        assertThat(postgresContainer.isRunning()).isTrue();
 
-		String databaseName = jdbcTemplate.queryForObject("SELECT current_database()", String.class);
-		Integer serverVersion = jdbcTemplate.queryForObject("SHOW server_version_num", Integer.class);
+        String databaseName = jdbcTemplate.queryForObject("SELECT current_database()", String.class);
+        Integer serverVersion = jdbcTemplate.queryForObject("SHOW server_version_num", Integer.class);
 
-		assertThat(databaseName).isEqualTo(postgresContainer.getDatabaseName());
-		assertThat(serverVersion).isBetween(170000, 179999);
-	}
+        assertThat(databaseName).isEqualTo(postgresContainer.getDatabaseName());
+        assertThat(serverVersion).isBetween(170000, 179999);
+    }
 
 }

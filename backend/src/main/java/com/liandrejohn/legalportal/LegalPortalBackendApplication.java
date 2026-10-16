@@ -6,8 +6,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @SpringBootApplication
 public class LegalPortalBackendApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(LegalPortalBackendApplication.class, args);
-	}
+    public static void main(String[] args) {
+        SpringApplication.run(LegalPortalBackendApplication.class, args);
+    }
 
 }

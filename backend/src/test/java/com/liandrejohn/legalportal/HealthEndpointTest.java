@@ -16,15 +16,15 @@ import org.springframework.test.web.servlet.MockMvc;
 @Import(TestcontainersConfiguration.class)
 class HealthEndpointTest {
 
-	@Autowired
-	private MockMvc mockMvc;
+    @Autowired
+    private MockMvc mockMvc;
 
-	@Test
-	void healthReportsUpWithoutDetails() throws Exception {
-		mockMvc.perform(get("/actuator/health"))
-			.andExpect(status().isOk())
-			.andExpect(jsonPath("$.status").value("UP"))
-			.andExpect(jsonPath("$.components").doesNotExist());
-	}
+    @Test
+    void healthReportsUpWithoutDetails() throws Exception {
+        mockMvc.perform(get("/actuator/health"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").value("UP"))
+            .andExpect(jsonPath("$.components").doesNotExist());
+    }
 
 }

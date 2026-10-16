@@ -11,11 +11,17 @@ spring:
   jpa:
     open-in-view: false
     hibernate:
-      ddl-auto: none
+      # Flyway owns the schema; Hibernate only checks that entities match it at startup
+      ddl-auto: validate
+  flyway:
+    # Databases created before Flyway already hold the session tables: baseline them at version 0 so every
+    # migration still runs (V1 tolerates the existing tables)
+    baseline-on-migrate: true
+    baseline-version: 0
   session:
     jdbc:
-      # Create the SPRING_SESSION tables on startup (the script is not idempotent, so errors on reruns are ignored)
-      initialize-schema: always
+      # The SPRING_SESSION tables are created by Flyway (V1)
+      initialize-schema: never
 server:
   servlet:
     session:

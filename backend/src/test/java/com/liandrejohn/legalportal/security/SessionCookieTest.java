@@ -23,24 +23,24 @@ import com.liandrejohn.legalportal.TestcontainersConfiguration;
 @Import(TestcontainersConfiguration.class)
 class SessionCookieTest {
 
-	@LocalServerPort
-	private int port;
+    @LocalServerPort
+    private int port;
 
-	@Test
-	void csrfEndpointIssuesSecureSessionCookie() throws Exception {
-		HttpRequest request = HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/api/v1/auth/csrf"))
-			.build();
+    @Test
+    void csrfEndpointIssuesSecureSessionCookie() throws Exception {
+        HttpRequest request = HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/api/v1/auth/csrf"))
+            .build();
 
-		HttpResponse<Void> response;
-		try (HttpClient client = HttpClient.newHttpClient()) {
-			response = client.send(request, HttpResponse.BodyHandlers.discarding());
-		}
+        HttpResponse<Void> response;
+        try (HttpClient client = HttpClient.newHttpClient()) {
+            response = client.send(request, HttpResponse.BodyHandlers.discarding());
+        }
 
-		assertThat(response.statusCode()).isEqualTo(200);
-		assertThat(response.headers().allValues("Set-Cookie")).singleElement()
-			.asString()
-			.startsWith("SESSION=")
-			.contains("Path=/", "Secure", "HttpOnly", "SameSite=Lax");
-	}
+        assertThat(response.statusCode()).isEqualTo(200);
+        assertThat(response.headers().allValues("Set-Cookie")).singleElement()
+            .asString()
+            .startsWith("SESSION=")
+            .contains("Path=/", "Secure", "HttpOnly", "SameSite=Lax");
+    }
 
 }

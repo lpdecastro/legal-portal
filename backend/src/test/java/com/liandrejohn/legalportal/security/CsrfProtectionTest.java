@@ -32,112 +32,112 @@ import com.liandrejohn.legalportal.TestcontainersConfiguration;
 @Import({ TestcontainersConfiguration.class, CsrfProtectionTest.ProbeConfiguration.class })
 class CsrfProtectionTest {
 
-	private static final String PROBE_PATH = "/api/v1/test/csrf-probe";
+    private static final String PROBE_PATH = "/api/v1/test/csrf-probe";
 
-	@Autowired
-	private MockMvc mockMvc;
+    @Autowired
+    private MockMvc mockMvc;
 
-	@Test
-	void unauthenticatedClientCanRetrieveToken() throws Exception {
-		mockMvc.perform(get("/api/v1/auth/csrf"))
-			.andExpect(status().isOk())
-			.andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-			.andExpect(jsonPath("$.token").isNotEmpty())
-			.andExpect(jsonPath("$.headerName").value("X-XSRF-TOKEN"));
-	}
+    @Test
+    void unauthenticatedClientCanRetrieveToken() throws Exception {
+        mockMvc.perform(get("/api/v1/auth/csrf"))
+            .andExpect(status().isOk())
+            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.token").isNotEmpty())
+            .andExpect(jsonPath("$.headerName").value("X-XSRF-TOKEN"));
+    }
 
-	@Test
-	void validTokenLetsAuthenticatedRequestReachTheController() throws Exception {
-		CsrfSession session = fetchCsrfSession();
+    @Test
+    void validTokenLetsAuthenticatedRequestReachTheController() throws Exception {
+        CsrfSession session = fetchCsrfSession();
 
-		mockMvc.perform(post(PROBE_PATH).cookie(session.cookie())
-			.header("X-XSRF-TOKEN", session.token())
-			.with(user("client")))
-			.andExpect(status().isNoContent());
-	}
+        mockMvc.perform(post(PROBE_PATH).cookie(session.cookie())
+            .header("X-XSRF-TOKEN", session.token())
+            .with(user("client")))
+            .andExpect(status().isNoContent());
+    }
 
-	@Test
-	void validTokenLetsUnauthenticatedRequestProceedToAuthentication() throws Exception {
-		CsrfSession session = fetchCsrfSession();
+    @Test
+    void validTokenLetsUnauthenticatedRequestProceedToAuthentication() throws Exception {
+        CsrfSession session = fetchCsrfSession();
 
-		mockMvc.perform(post(PROBE_PATH).cookie(session.cookie()).header("X-XSRF-TOKEN", session.token()))
-			.andExpect(status().isUnauthorized())
-			.andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
-			.andExpect(jsonPath("$.errorCode").value("UNAUTHORIZED"));
-	}
+        mockMvc.perform(post(PROBE_PATH).cookie(session.cookie()).header("X-XSRF-TOKEN", session.token()))
+            .andExpect(status().isUnauthorized())
+            .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+            .andExpect(jsonPath("$.errorCode").value("UNAUTHORIZED"));
+    }
 
-	@Test
-	void missingTokenIsRejected() throws Exception {
-		CsrfSession session = fetchCsrfSession();
+    @Test
+    void missingTokenIsRejected() throws Exception {
+        CsrfSession session = fetchCsrfSession();
 
-		expectCsrfRejection(mockMvc.perform(post(PROBE_PATH).cookie(session.cookie()).with(user("client"))));
-	}
+        expectCsrfRejection(mockMvc.perform(post(PROBE_PATH).cookie(session.cookie()).with(user("client"))));
+    }
 
-	@Test
-	void invalidTokenIsRejected() throws Exception {
-		CsrfSession session = fetchCsrfSession();
+    @Test
+    void invalidTokenIsRejected() throws Exception {
+        CsrfSession session = fetchCsrfSession();
 
-		expectCsrfRejection(mockMvc.perform(post(PROBE_PATH).cookie(session.cookie())
-			.header("X-XSRF-TOKEN", "not-a-valid-token")
-			.with(user("client"))));
-	}
+        expectCsrfRejection(mockMvc.perform(post(PROBE_PATH).cookie(session.cookie())
+            .header("X-XSRF-TOKEN", "not-a-valid-token")
+            .with(user("client"))));
+    }
 
-	@Test
-	void tokenFromAnotherSessionIsRejected() throws Exception {
-		CsrfSession first = fetchCsrfSession();
-		CsrfSession second = fetchCsrfSession();
+    @Test
+    void tokenFromAnotherSessionIsRejected() throws Exception {
+        CsrfSession first = fetchCsrfSession();
+        CsrfSession second = fetchCsrfSession();
 
-		expectCsrfRejection(mockMvc.perform(post(PROBE_PATH).cookie(second.cookie())
-			.header("X-XSRF-TOKEN", first.token())
-			.with(user("client"))));
-	}
+        expectCsrfRejection(mockMvc.perform(post(PROBE_PATH).cookie(second.cookie())
+            .header("X-XSRF-TOKEN", first.token())
+            .with(user("client"))));
+    }
 
-	@Test
-	void tokenWithoutSessionIsRejected() throws Exception {
-		CsrfSession session = fetchCsrfSession();
+    @Test
+    void tokenWithoutSessionIsRejected() throws Exception {
+        CsrfSession session = fetchCsrfSession();
 
-		expectCsrfRejection(mockMvc
-			.perform(post(PROBE_PATH).header("X-XSRF-TOKEN", session.token()).with(user("client"))));
-	}
+        expectCsrfRejection(mockMvc
+            .perform(post(PROBE_PATH).header("X-XSRF-TOKEN", session.token()).with(user("client"))));
+    }
 
-	private CsrfSession fetchCsrfSession() throws Exception {
-		MvcResult result = mockMvc.perform(get("/api/v1/auth/csrf")).andExpect(status().isOk()).andReturn();
-		Cookie cookie = result.getResponse().getCookie("SESSION");
-		assertThat(cookie).isNotNull();
-		String token = JsonPath.read(result.getResponse().getContentAsString(), "$.token");
-		return new CsrfSession(cookie, token);
-	}
+    private CsrfSession fetchCsrfSession() throws Exception {
+        MvcResult result = mockMvc.perform(get("/api/v1/auth/csrf")).andExpect(status().isOk()).andReturn();
+        Cookie cookie = result.getResponse().getCookie("SESSION");
+        assertThat(cookie).isNotNull();
+        String token = JsonPath.read(result.getResponse().getContentAsString(), "$.token");
+        return new CsrfSession(cookie, token);
+    }
 
-	private void expectCsrfRejection(ResultActions result) throws Exception {
-		result.andExpect(status().isForbidden())
-			.andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
-			.andExpect(jsonPath("$.title").value("Forbidden"))
-			.andExpect(jsonPath("$.status").value(403))
-			.andExpect(jsonPath("$.detail").value("Invalid or missing CSRF token."))
-			.andExpect(jsonPath("$.instance").value(PROBE_PATH))
-			.andExpect(jsonPath("$.errorCode").value("FORBIDDEN"))
-			.andExpect(jsonPath("$.timestamp").value(matchesPattern("\\d{4}-\\d{2}-\\d{2}T.*Z")))
-			.andExpect(jsonPath("$.traceId").isNotEmpty());
-	}
+    private void expectCsrfRejection(ResultActions result) throws Exception {
+        result.andExpect(status().isForbidden())
+            .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+            .andExpect(jsonPath("$.title").value("Forbidden"))
+            .andExpect(jsonPath("$.status").value(403))
+            .andExpect(jsonPath("$.detail").value("Invalid or missing CSRF token."))
+            .andExpect(jsonPath("$.instance").value(PROBE_PATH))
+            .andExpect(jsonPath("$.errorCode").value("FORBIDDEN"))
+            .andExpect(jsonPath("$.timestamp").value(matchesPattern("\\d{4}-\\d{2}-\\d{2}T.*Z")))
+            .andExpect(jsonPath("$.traceId").isNotEmpty());
+    }
 
-	private record CsrfSession(Cookie cookie, String token) {
-	}
+    private record CsrfSession(Cookie cookie, String token) {
+    }
 
-	@TestConfiguration(proxyBeanMethods = false)
-	@Import(ProbeController.class)
-	static class ProbeConfiguration {
+    @TestConfiguration(proxyBeanMethods = false)
+    @Import(ProbeController.class)
+    static class ProbeConfiguration {
 
-	}
+    }
 
-	/** A state-changing endpoint that only exists in tests, standing in for real APIs. */
-	@RestController
-	static class ProbeController {
+    /** A state-changing endpoint that only exists in tests, standing in for real APIs. */
+    @RestController
+    static class ProbeController {
 
-		@PostMapping(PROBE_PATH)
-		ResponseEntity<Void> probe() {
-			return ResponseEntity.noContent().build();
-		}
+        @PostMapping(PROBE_PATH)
+        ResponseEntity<Void> probe() {
+            return ResponseEntity.noContent().build();
+        }
 
-	}
+    }
 
 }

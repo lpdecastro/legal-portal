@@ -73,7 +73,7 @@ A malicious site can make the browser send the `SESSION` cookie. It cannot read 
 
 ## Configuration
 
-- **Session storage:** `spring.session.jdbc.initialize-schema: always` creates the `SPRING_SESSION` tables on startup. The script isn't idempotent, so errors on later runs are ignored (`continue-on-error` defaults to `true`).
+- **Session storage:** the `SPRING_SESSION` tables are created by the Flyway migration `V1__create_spring_session_tables.sql`; Spring Session's own initializer is off (`spring.session.jdbc.initialize-schema: never`).
 - **Cookie flags:** `server.servlet.session.cookie.http-only`, `secure` and `same-site` set the flags on Spring Session's cookie.
 - **Public endpoints:** `GET /api/v1/auth/csrf` and `GET /actuator/health/**`. Every other request requires authentication.
 - **Disabled defaults:** Spring Security's default `POST /logout` filter is turned off, because logout will get its own API endpoint. The request cache is also turned off.

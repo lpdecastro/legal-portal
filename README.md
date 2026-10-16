@@ -32,6 +32,11 @@ cd backend
 ./mvnw spring-boot:run
 ```
 
+#### IntelliJ IDEA gotchas
+
+- **Maven fails to run or import:** go to **Settings → Build, Execution, Deployment → Build Tools → Maven** and set **Maven home path** to **Bundled (Maven 3)**.
+- **Lombok code doesn't compile (e.g. `cannot find symbol: variable log` from `@Slf4j`):** go to **Settings → Build, Execution, Deployment → Compiler → Annotation Processors**, select the **legal-portal-backend** profile, tick **Enable annotation processing**, and choose **Obtain processors from project classpath**.
+
 ## Project Structure
 
 ```

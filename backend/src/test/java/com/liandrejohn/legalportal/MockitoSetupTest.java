@@ -18,16 +18,16 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class MockitoSetupTest {
 
-	@Mock
-	private Clock clock;
+    @Mock
+    private Clock clock;
 
-	@Test
-	void mockReturnsStubbedValue() {
-		Instant fixed = Instant.parse("2026-01-01T00:00:00Z");
-		when(clock.instant()).thenReturn(fixed);
+    @Test
+    void mockReturnsStubbedValue() {
+        Instant fixed = Instant.parse("2026-01-01T00:00:00Z");
+        when(clock.instant()).thenReturn(fixed);
 
-		assertThat(clock.instant()).isEqualTo(fixed);
-		verify(clock).instant();
-	}
+        assertThat(clock.instant()).isEqualTo(fixed);
+        verify(clock).instant();
+    }
 
 }

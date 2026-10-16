@@ -9,10 +9,10 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/auth")
 class CsrfController {
 
-	/** Returns the session's CSRF token, creating the session and token if they don't exist yet. */
-	@GetMapping("/csrf")
-	CsrfTokenResponse csrf(CsrfToken csrfToken) {
-		return new CsrfTokenResponse(csrfToken.getToken(), csrfToken.getHeaderName());
-	}
+    /** Returns the session's CSRF token, creating the session and token if they don't exist yet. */
+    @GetMapping("/csrf")
+    CsrfTokenResponse csrf(CsrfToken csrfToken) {
+        return new CsrfTokenResponse(csrfToken.getToken(), csrfToken.getHeaderName());
+    }
 
 }

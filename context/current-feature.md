@@ -1,29 +1,18 @@
-# Current Feature: AUTH-02-02 Login Form
+# Current Feature
 
-Allow registered clients to log in through the React UI.
+<!-- Feature name and short description -->
 
 ## Status
 
-In Progress
+<!-- Not Started / In Progress / Completed -->
 
 ## Goals
 
-- Ant Design login form on `/login` with email and password fields.
-- Client-side validation: required fields and email format.
-- Integrate with `POST /api/v1/auth/login` via the Fetch API client, following the `AUTH-02-01-login-api.md` contract.
-- Fetch a CSRF token from `GET /api/v1/auth/csrf` before submission and send it in the `X-XSRF-TOKEN` header (per `AUTH-00-01-csrf-protection.md`); session cookies handled by the browser.
-- Store the authenticated user (`{ id, email, firstName, lastName }`) in React state.
-- Display validation errors and API errors; invalid credentials (401) show a generic error message.
-- Show loading state and disable the submit button while submitting.
-- Redirect to `/dashboard` after successful login.
-- Automated tests (RTL + MSW) pass.
+<!-- Goals and requirements -->
 
 ## Notes
 
-- Type: Frontend. Spec: `context/epics/02-authentication/stories/AUTH-02-login/tasks/AUTH-02-02-login-form.md`.
-- Reuse the existing `api/client.ts` (CSRF fetch before POST, typed `ApiError` from Problem Details) and patterns from the registration form (AUTH-01-02).
-- Login API also returns 429 `RATE_LIMIT_EXCEEDED` and 400 `VALIDATION_ERROR` — surface these as API errors.
-- Out of scope: login API implementation, session restoration after refresh (`GET /auth/me`), protected routes, logout.
+<!-- Any extra notes -->
 
 ## History
 
@@ -38,3 +27,4 @@ In Progress
 - **AUTH-01-01: Registration API** (2026-10-16) — Public, CSRF-protected `POST /api/v1/auth/register` creating a `users` + `client_profiles` row (BCrypt hash, email trimmed/lowercased, case-insensitive unique index on `lower(email)`); returns 201 without logging in; 400 `VALIDATION_ERROR` with `fieldErrors` (password 12+ chars, ≤72 bytes) and 409 `EMAIL_ALREADY_EXISTS` via `ApiExceptionHandler`/`ApiException`; Problem Details always include `type`; Flyway introduced (V1 Spring Session tables, V2 users/profiles, `ddl-auto: validate`, see `docs/flyway-migrations.md`); backend moved to 4-space indentation and Lombok.
 - **AUTH-01-02: Registration Form** (2026-10-16) — Ant Design form on `/register` (first/last name, email, password, confirm) with client-side validation (required, email format, password 12+ chars and ≤72 bytes, matching passwords, API length limits); Fetch API client (`api/client.ts`) fetches a CSRF token before each POST and throws a typed `ApiError` from Problem Details; API `fieldErrors` and 409 `EMAIL_ALREADY_EXISTS` shown under fields, other errors in an alert; form disabled/loading while submitting; 201 redirects to `/login`; Vite dev proxy `/api` → `localhost:8080`; RTL + MSW tests; `docs/typescript-runtime-types.md`.
 - **AUTH-02-01: Login API** (2026-10-16) — Public, CSRF-protected `POST /api/v1/auth/login` authenticating email (trimmed/lowercased) + BCrypt password via a `DaoAuthenticationProvider`/`ClientUserDetailsService`; 200 returns `{ id, email, firstName, lastName }`; `SessionLogin` changes the session ID, replaces the CSRF token and saves the `SecurityContext` to the Spring Session JDBC session; same generic 401 `UNAUTHORIZED` for unknown email, wrong password, suspended/disabled/deleted accounts (status checked after the password); in-memory `LoginAttemptLimiter` (5 failures/email, 50/IP per 15 min, `app.security.login-rate-limit.*`) returns 429 `RATE_LIMIT_EXCEEDED`; `server.forward-headers-strategy: native` for client IPs behind the ALB; flow in `docs/session-login.md`.
+- **AUTH-02-02: Login Form** (2026-10-16) — Ant Design form on `/login` (email, password) with required/email-format validation; `login()` posts to `POST /api/v1/auth/login` via `api/client.ts` (CSRF token fetched first, sent in `X-XSRF-TOKEN`); signed-in client kept in React state via `AuthProvider`/`AuthContext` and `useAuth`, set by `useLogin`; every 401 shows the generic "Invalid email or password." alert, API `fieldErrors` go under fields, other errors (e.g. 429) in an alert; form disabled/loading while submitting; success redirects to `/dashboard`; `renderWithProviders` wraps `AuthProvider`; RTL + MSW tests. User state is lost on refresh until session restoration (`GET /auth/me`) lands.

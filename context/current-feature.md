@@ -1,18 +1,30 @@
-# Current Feature
+# Current Feature: AUTH-00-01 CSRF Protection
 
-<!-- Feature name and short description -->
+Protect state-changing API requests against CSRF attacks using Spring Security, with a token endpoint for the SPA.
 
 ## Status
 
-<!-- Not Started / In Progress / Completed -->
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- Configure CSRF protection with Spring Security, storing tokens server-side in the HTTP session (not a cookie repository).
+- Implement `GET /api/v1/auth/csrf` (no authentication required) returning `200` with JSON body `{ "token": "<value>", "headerName": "X-XSRF-TOKEN" }`.
+- The endpoint establishes/uses the session: `Set-Cookie: SESSION=<id>; HttpOnly; Secure; SameSite=Lax; Path=/`.
+- Clients send the token in the `X-XSRF-TOKEN` header; valid tokens let state-changing requests proceed to normal authentication and validation.
+- Missing or invalid CSRF tokens return `403` as RFC 9457 Problem Details (`application/problem+json`) with `title: "Forbidden"`, `detail: "Invalid or missing CSRF token."`, `errorCode: "FORBIDDEN"`, `timestamp`, `traceId`.
+- CSRF tokens are bound to the correct session (a token from one session is rejected in another).
+- Automated tests cover: unauthenticated token retrieval, valid token accepted, missing token → 403, invalid token → 403, cross-session token → 403; all tests pass.
 
 ## Notes
 
-<!-- Any extra notes -->
+- Spec: `context/epics/02-authentication/tasks/AUTH-00-01-csrf-protection.md`. Type: Backend only.
+- Auth model per `project-overview.md`: session-based Spring Security with Spring Session JDBC (no JWT); SPA and API share one origin.
+- Out of scope: registration/login APIs, frontend CSRF retrieval/integration, authentication & authorization, session restoration and logout.
+- Error format must match the project's Problem Details shape (`errorCode`, `timestamp`, `traceId` extensions).
+- Implementation: Spring Session JDBC added (schema via `spring.session.jdbc.initialize-schema: always`); cookie attributes via `server.servlet.session.cookie.*`. Non-public requests require authentication, so a 401 Problem Details entry point was added to keep "not logged in" distinct from the CSRF 403.
+- Spring omits `"type"` when it is `about:blank` (equivalent per RFC 9457), so 403 bodies don't include it explicitly.
+- Session cookie attributes aren't applied in MockMvc's mock environment, so `SessionCookieTest` checks them against a real server.
 
 ## History
 

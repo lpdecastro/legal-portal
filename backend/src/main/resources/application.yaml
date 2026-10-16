@@ -12,6 +12,18 @@ spring:
     open-in-view: false
     hibernate:
       ddl-auto: none
+  session:
+    jdbc:
+      # Create the SPRING_SESSION tables on startup (the script is not idempotent, so errors on reruns are ignored)
+      initialize-schema: always
+server:
+  servlet:
+    session:
+      # Applied to Spring Session's SESSION cookie
+      cookie:
+        http-only: true
+        secure: true
+        same-site: lax
 management:
   endpoints:
     web:

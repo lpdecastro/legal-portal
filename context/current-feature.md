@@ -1,18 +1,33 @@
-# Current Feature
+# Current Feature: AUTH-02-01 Login API
 
-<!-- Feature name and short description -->
+Allow registered clients to log in securely through the Spring Boot API (`POST /api/v1/auth/login`).
 
 ## Status
 
-<!-- Not Started / In Progress / Completed -->
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- Implement public, CSRF-protected `POST /api/v1/auth/login` accepting `{ email, password }` (`Content-Type: application/json`, `X-XSRF-TOKEN` header).
+- Authenticate by email (trimmed/lowercased, matching registration) and BCrypt password via Spring Security.
+- On success return 200 with `{ id, email, firstName, lastName }` and create a server-side session in Spring Session JDBC.
+- `SESSION` cookie returned on success: HttpOnly, Secure, SameSite=Lax, Path=/.
+- Subsequent authenticated API requests are recognized via the session (security context persisted to the session).
+- Invalid credentials return 401 Problem Details (`errorCode: UNAUTHORIZED`, detail "Invalid email or password.") without revealing whether the email exists.
+- Inactive accounts (`status` SUSPENDED or DISABLED) cannot log in, with the same generic error.
+- Repeated failed login attempts are rate-limited with 429 `RATE_LIMIT_EXCEEDED` Problem Details.
+- Requests without a valid CSRF token are rejected with 403 `FORBIDDEN`.
+- Automated tests (unit + Testcontainers integration) cover all of the above and pass.
 
 ## Notes
 
-<!-- Any extra notes -->
+- Spec: `context/epics/02-authentication/stories/AUTH-02-login/tasks/AUTH-02-01-login-api.md` (story AUTH-02: Client Login).
+- Out of scope: login form (AUTH-02-02), session restoration (`GET /auth/me`), protected frontend routes, logout.
+- Error response shape: RFC 9457 with `type`, `title`, `status`, `detail`, `errorCode`, `timestamp`, `traceId` — reuse `ApiExceptionHandler`/`ApiException` from AUTH-01-01.
+- `users.status` enum: ACTIVE, SUSPENDED, DISABLED (default ACTIVE) per `project-overview.md`.
+- Existing pieces from AUTH-00-01: Spring Security + Spring Session JDBC, CSRF token in session via `GET /api/v1/auth/csrf`, 401/403 Problem Details handlers.
+- Consider session fixation protection (change session ID on login) and that the CSRF token may rotate after authentication.
+- Rate limiting should avoid leaking account existence (apply uniformly per email/IP, regardless of whether the email exists).
 
 ## History
 

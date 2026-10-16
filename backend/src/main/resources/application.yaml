@@ -23,6 +23,9 @@ spring:
       # The SPRING_SESSION tables are created by Flyway (V1)
       initialize-schema: never
 server:
+  # Behind the ALB, take the client IP from X-Forwarded-For (Tomcat only trusts it from internal proxy addresses);
+  # login rate limiting counts failures per client IP
+  forward-headers-strategy: native
   servlet:
     session:
       # Applied to Spring Session's SESSION cookie
@@ -30,6 +33,12 @@ server:
         http-only: true
         secure: true
         same-site: lax
+app:
+  security:
+    login-rate-limit:
+      max-failures-per-email: 5
+      max-failures-per-ip: 50
+      window: 15m
 management:
   endpoints:
     web:

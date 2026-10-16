@@ -1,18 +1,28 @@
-# Current Feature
+# Current Feature: AUTH-01-02 Registration Form
 
-<!-- Feature name and short description -->
+Allow clients to register an account through the React UI.
 
 ## Status
 
-<!-- Not Started / In Progress / Completed -->
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- Ant Design registration form with first name, last name, email, password, and confirm password.
+- Client-side validation: required fields, email format, password minimum 12 characters, matching passwords.
+- Fetch `GET /api/v1/auth/csrf` before submitting and send the token in the `X-XSRF-TOKEN` header.
+- Submit to `POST /api/v1/auth/register` with the Fetch API, following the AUTH-01-01 contract.
+- Display validation errors (including API `fieldErrors`) and API errors; duplicate email (409 `EMAIL_ALREADY_EXISTS`) shows an error message.
+- Submit button disabled / loading while submitting.
+- Successful registration (201) redirects to `/login`.
+- Automated tests (Vitest + RTL + MSW) covering the above, all passing.
 
 ## Notes
 
-<!-- Any extra notes -->
+- Type: Frontend. Spec: `context/epics/02-authentication/stories/AUTH-01-registration/tasks/AUTH-01-02-registration-form.md`.
+- API contracts: `AUTH-01-01-registration-api.md` (register) and `AUTH-00-01-csrf-protection.md` (CSRF). Registration does not log the user in; errors are RFC 9457 Problem Details with `errorCode` and `fieldErrors`. Backend also caps password at 72 bytes.
+- Session cookie must be sent with both requests (same origin) so the CSRF token matches the session.
+- Out of scope: registration API implementation, login and session management, email verification.
 
 ## History
 

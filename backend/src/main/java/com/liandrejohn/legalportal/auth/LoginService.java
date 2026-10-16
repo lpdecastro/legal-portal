@@ -51,8 +51,8 @@ class LoginService {
             .orElseThrow(() -> new IllegalStateException("No client profile for user " + user.getId()));
 
         log.info("Client user {} logged in", user.getId());
-        return new LoginResult(authentication,
-                new LoginResponse(user.getId(), user.getUsername(), profile.getFirstName(), profile.getLastName()));
+        return new LoginResult(authentication, new AuthenticatedClientResponse(user.getId(), user.getUsername(),
+                profile.getFirstName(), profile.getLastName()));
     }
 
 }

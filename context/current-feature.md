@@ -1,18 +1,29 @@
-# Current Feature
+# Current Feature: AUTH-03-01 Session Restoration
 
-<!-- Feature name and short description -->
+Restore the authenticated client's session after a page refresh (Backend + Frontend).
 
 ## Status
 
-<!-- Not Started / In Progress / Completed -->
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- Implement `GET /api/v1/auth/me` in Spring Boot.
+- Return 200 `{ id, email, firstName, lastName }` for a valid session, using the existing session cookie.
+- Return 401 `UNAUTHORIZED` (Problem Details, `application/problem+json`, detail "Authentication required.") for missing, invalid, or expired sessions.
+- Call `/auth/me` when React initializes and restore the authenticated user into React state (`AuthProvider`/`AuthContext`).
+- Show a loading state while the session is being checked.
+- Handle expired or invalid sessions (no authentication restored).
+- Refreshing the page keeps clients logged in with their user information when the session is valid.
+- Add automated tests (backend integration + frontend RTL/MSW); all tests pass.
 
 ## Notes
 
-<!-- Any extra notes -->
+- Spec: `context/epics/02-authentication/stories/AUTH-03-session/tasks/AUTH-03-01-session-restoration.md`.
+- Success response shape matches the login response from AUTH-02-01.
+- Builds on AUTH-02-01 (session login via Spring Session JDBC, `SessionLogin`) and AUTH-02-02 (`AuthProvider`, `useAuth`, `useLogin`, `api/client.ts`).
+- Existing security config already returns Problem Details 401 `UNAUTHORIZED` for unauthenticated requests (AUTH-00-01).
+- Out of scope: login/session creation, protected route redirects (AUTH-03-02), logout.
 
 ## History
 

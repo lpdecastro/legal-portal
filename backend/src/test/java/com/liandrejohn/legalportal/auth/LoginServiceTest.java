@@ -64,7 +64,7 @@ class LoginServiceTest {
         LoginResult result = loginService.login(REQUEST, IP);
 
         assertThat(result.authentication()).isSameAs(authentication);
-        assertThat(result.response()).isEqualTo(new LoginResponse(id, "john@example.com", "John", "Doe"));
+        assertThat(result.response()).isEqualTo(new AuthenticatedClientResponse(id, "john@example.com", "John", "Doe"));
         verify(loginAttemptLimiter).recordSuccess("john@example.com");
     }
 

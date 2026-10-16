@@ -21,7 +21,7 @@ class LoginController {
     private final SessionLogin sessionLogin;
 
     @PostMapping("/login")
-    LoginResponse login(@Valid @RequestBody LoginRequest body, HttpServletRequest request,
+    AuthenticatedClientResponse login(@Valid @RequestBody LoginRequest body, HttpServletRequest request,
             HttpServletResponse response) {
         LoginResult result = loginService.login(body, request.getRemoteAddr());
         sessionLogin.establish(result.authentication(), request, response);

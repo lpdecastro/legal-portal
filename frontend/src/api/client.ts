@@ -53,6 +53,14 @@ export async function fetchCsrfToken(): Promise<CsrfTokenResponse> {
   return (await response.json()) as CsrfTokenResponse
 }
 
+export async function getJson<TResponse>(path: string): Promise<TResponse> {
+  const response = await send(path, {
+    method: 'GET',
+    headers: { Accept: 'application/json, application/problem+json' },
+  })
+  return (await response.json()) as TResponse
+}
+
 // Sends a CSRF-protected JSON request, fetching a fresh token first.
 export async function postJson<TResponse>(path: string, body: unknown): Promise<TResponse> {
   const csrf = await fetchCsrfToken()

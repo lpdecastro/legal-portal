@@ -20,7 +20,8 @@ class ProblemDetailsAuthenticationEntryPoint implements AuthenticationEntryPoint
     @Override
     public void commence(HttpServletRequest request, HttpServletResponse response,
             AuthenticationException authException) throws IOException {
-        writer.write(request, response, HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "Authentication is required.");
+        writer.write(request, response, HttpStatus.UNAUTHORIZED, "UNAUTHORIZED",
+                AuthenticationRequiredException.DETAIL);
     }
 
 }

@@ -7,11 +7,12 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.context.SecurityContextHolderStrategy;
+import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
 import org.springframework.security.web.authentication.session.SessionAuthenticationStrategy;
 import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.stereotype.Component;
 
-/** Stores a successful authentication in the server-side session so later requests are recognized. */
+/** Stores a successful authentication in the server-side session so later requests are recognized, or ends it. */
 @Component
 @RequiredArgsConstructor
 public class SessionLogin {
@@ -31,6 +32,14 @@ public class SessionLogin {
         context.setAuthentication(authentication);
         securityContextHolderStrategy.setContext(context);
         securityContextRepository.saveContext(context, request, response);
+    }
+
+    /** Invalidates the session (Spring Session deletes it from the database) and clears the security context. */
+    public void end(HttpServletRequest request, HttpServletResponse response) {
+        SecurityContextLogoutHandler logoutHandler = new SecurityContextLogoutHandler();
+        logoutHandler.setSecurityContextHolderStrategy(securityContextHolderStrategy);
+        logoutHandler.setSecurityContextRepository(securityContextRepository);
+        logoutHandler.logout(request, response, null);
     }
 
 }

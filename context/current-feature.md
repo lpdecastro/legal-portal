@@ -1,29 +1,18 @@
-# Current Feature: AUTH-03-01 Session Restoration
+# Current Feature
 
-Restore the authenticated client's session after a page refresh (Backend + Frontend).
+<!-- Feature name and short description -->
 
 ## Status
 
-In Progress
+<!-- Not Started / In Progress / Completed -->
 
 ## Goals
 
-- Implement `GET /api/v1/auth/me` in Spring Boot.
-- Return 200 `{ id, email, firstName, lastName }` for a valid session, using the existing session cookie.
-- Return 401 `UNAUTHORIZED` (Problem Details, `application/problem+json`, detail "Authentication required.") for missing, invalid, or expired sessions.
-- Call `/auth/me` when React initializes and restore the authenticated user into React state (`AuthProvider`/`AuthContext`).
-- Show a loading state while the session is being checked.
-- Handle expired or invalid sessions (no authentication restored).
-- Refreshing the page keeps clients logged in with their user information when the session is valid.
-- Add automated tests (backend integration + frontend RTL/MSW); all tests pass.
+<!-- Goals and requirements -->
 
 ## Notes
 
-- Spec: `context/epics/02-authentication/stories/AUTH-03-session/tasks/AUTH-03-01-session-restoration.md`.
-- Success response shape matches the login response from AUTH-02-01.
-- Builds on AUTH-02-01 (session login via Spring Session JDBC, `SessionLogin`) and AUTH-02-02 (`AuthProvider`, `useAuth`, `useLogin`, `api/client.ts`).
-- Existing security config already returns Problem Details 401 `UNAUTHORIZED` for unauthenticated requests (AUTH-00-01).
-- Out of scope: login/session creation, protected route redirects (AUTH-03-02), logout.
+<!-- Any extra notes -->
 
 ## History
 
@@ -39,3 +28,4 @@ In Progress
 - **AUTH-01-02: Registration Form** (2026-10-16) — Ant Design form on `/register` (first/last name, email, password, confirm) with client-side validation (required, email format, password 12+ chars and ≤72 bytes, matching passwords, API length limits); Fetch API client (`api/client.ts`) fetches a CSRF token before each POST and throws a typed `ApiError` from Problem Details; API `fieldErrors` and 409 `EMAIL_ALREADY_EXISTS` shown under fields, other errors in an alert; form disabled/loading while submitting; 201 redirects to `/login`; Vite dev proxy `/api` → `localhost:8080`; RTL + MSW tests; `docs/typescript-runtime-types.md`.
 - **AUTH-02-01: Login API** (2026-10-16) — Public, CSRF-protected `POST /api/v1/auth/login` authenticating email (trimmed/lowercased) + BCrypt password via a `DaoAuthenticationProvider`/`ClientUserDetailsService`; 200 returns `{ id, email, firstName, lastName }`; `SessionLogin` changes the session ID, replaces the CSRF token and saves the `SecurityContext` to the Spring Session JDBC session; same generic 401 `UNAUTHORIZED` for unknown email, wrong password, suspended/disabled/deleted accounts (status checked after the password); in-memory `LoginAttemptLimiter` (5 failures/email, 50/IP per 15 min, `app.security.login-rate-limit.*`) returns 429 `RATE_LIMIT_EXCEEDED`; `server.forward-headers-strategy: native` for client IPs behind the ALB; flow in `docs/session-login.md`.
 - **AUTH-02-02: Login Form** (2026-10-16) — Ant Design form on `/login` (email, password) with required/email-format validation; `login()` posts to `POST /api/v1/auth/login` via `api/client.ts` (CSRF token fetched first, sent in `X-XSRF-TOKEN`); signed-in client kept in React state via `AuthProvider`/`AuthContext` and `useAuth`, set by `useLogin`; every 401 shows the generic "Invalid email or password." alert, API `fieldErrors` go under fields, other errors (e.g. 429) in an alert; form disabled/loading while submitting; success redirects to `/dashboard`; `renderWithProviders` wraps `AuthProvider`; RTL + MSW tests. User state is lost on refresh until session restoration (`GET /auth/me`) lands.
+- **AUTH-03-01: Session Restoration** (2026-10-16) — `GET /api/v1/auth/me` returns 200 `{ id, email, firstName, lastName }` (`AuthenticatedClientResponse`, shared with login) for an authenticated session, reloading user and profile from the database; missing, unknown, anonymous or expired sessions get 401 `UNAUTHORIZED` "Authentication required." from the security entry point; accounts deleted, suspended or disabled after login have their session ended (`SessionLogin.end`) and get the same 401; `AuthProvider` restores the client via `fetchCurrentUser()` on start-up behind a full-screen `Spin`, any failure leaves them signed out; profile menu shows the client's name; `renderWithProviders` takes a `user` option that skips the check; `CurrentClientIntegrationTest`, `AuthProvider`/`ProfileMenu` tests; flow in `docs/session-restoration.md`.

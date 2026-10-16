@@ -1,18 +1,29 @@
-# Current Feature
+# Current Feature: AUTH-02-02 Login Form
 
-<!-- Feature name and short description -->
+Allow registered clients to log in through the React UI.
 
 ## Status
 
-<!-- Not Started / In Progress / Completed -->
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- Ant Design login form on `/login` with email and password fields.
+- Client-side validation: required fields and email format.
+- Integrate with `POST /api/v1/auth/login` via the Fetch API client, following the `AUTH-02-01-login-api.md` contract.
+- Fetch a CSRF token from `GET /api/v1/auth/csrf` before submission and send it in the `X-XSRF-TOKEN` header (per `AUTH-00-01-csrf-protection.md`); session cookies handled by the browser.
+- Store the authenticated user (`{ id, email, firstName, lastName }`) in React state.
+- Display validation errors and API errors; invalid credentials (401) show a generic error message.
+- Show loading state and disable the submit button while submitting.
+- Redirect to `/dashboard` after successful login.
+- Automated tests (RTL + MSW) pass.
 
 ## Notes
 
-<!-- Any extra notes -->
+- Type: Frontend. Spec: `context/epics/02-authentication/stories/AUTH-02-login/tasks/AUTH-02-02-login-form.md`.
+- Reuse the existing `api/client.ts` (CSRF fetch before POST, typed `ApiError` from Problem Details) and patterns from the registration form (AUTH-01-02).
+- Login API also returns 429 `RATE_LIMIT_EXCEEDED` and 400 `VALIDATION_ERROR` — surface these as API errors.
+- Out of scope: login API implementation, session restoration after refresh (`GET /auth/me`), protected routes, logout.
 
 ## History
 

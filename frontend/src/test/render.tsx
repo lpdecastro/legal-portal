@@ -3,6 +3,7 @@ import { render } from '@testing-library/react'
 import type { RenderOptions, RenderResult } from '@testing-library/react'
 import { App as AntApp, ConfigProvider } from 'antd'
 import { MemoryRouter } from 'react-router'
+import AuthProvider from '../auth/AuthProvider'
 import { theme } from '../theme/theme'
 
 interface RenderWithProvidersOptions extends Omit<RenderOptions, 'wrapper'> {
@@ -18,7 +19,9 @@ export function renderWithProviders(
     wrapper: ({ children }) => (
       <ConfigProvider theme={theme}>
         <AntApp>
-          <MemoryRouter initialEntries={initialEntries}>{children}</MemoryRouter>
+          <AuthProvider>
+            <MemoryRouter initialEntries={initialEntries}>{children}</MemoryRouter>
+          </AuthProvider>
         </AntApp>
       </ConfigProvider>
     ),

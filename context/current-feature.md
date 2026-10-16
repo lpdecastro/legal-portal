@@ -1,33 +1,18 @@
-# Current Feature: AUTH-02-01 Login API
+# Current Feature
 
-Allow registered clients to log in securely through the Spring Boot API (`POST /api/v1/auth/login`).
+<!-- Feature name and short description -->
 
 ## Status
 
-In Progress
+<!-- Not Started / In Progress / Completed -->
 
 ## Goals
 
-- Implement public, CSRF-protected `POST /api/v1/auth/login` accepting `{ email, password }` (`Content-Type: application/json`, `X-XSRF-TOKEN` header).
-- Authenticate by email (trimmed/lowercased, matching registration) and BCrypt password via Spring Security.
-- On success return 200 with `{ id, email, firstName, lastName }` and create a server-side session in Spring Session JDBC.
-- `SESSION` cookie returned on success: HttpOnly, Secure, SameSite=Lax, Path=/.
-- Subsequent authenticated API requests are recognized via the session (security context persisted to the session).
-- Invalid credentials return 401 Problem Details (`errorCode: UNAUTHORIZED`, detail "Invalid email or password.") without revealing whether the email exists.
-- Inactive accounts (`status` SUSPENDED or DISABLED) cannot log in, with the same generic error.
-- Repeated failed login attempts are rate-limited with 429 `RATE_LIMIT_EXCEEDED` Problem Details.
-- Requests without a valid CSRF token are rejected with 403 `FORBIDDEN`.
-- Automated tests (unit + Testcontainers integration) cover all of the above and pass.
+<!-- Goals and requirements -->
 
 ## Notes
 
-- Spec: `context/epics/02-authentication/stories/AUTH-02-login/tasks/AUTH-02-01-login-api.md` (story AUTH-02: Client Login).
-- Out of scope: login form (AUTH-02-02), session restoration (`GET /auth/me`), protected frontend routes, logout.
-- Error response shape: RFC 9457 with `type`, `title`, `status`, `detail`, `errorCode`, `timestamp`, `traceId` — reuse `ApiExceptionHandler`/`ApiException` from AUTH-01-01.
-- `users.status` enum: ACTIVE, SUSPENDED, DISABLED (default ACTIVE) per `project-overview.md`.
-- Existing pieces from AUTH-00-01: Spring Security + Spring Session JDBC, CSRF token in session via `GET /api/v1/auth/csrf`, 401/403 Problem Details handlers.
-- Consider session fixation protection (change session ID on login) and that the CSRF token may rotate after authentication.
-- Rate limiting should avoid leaking account existence (apply uniformly per email/IP, regardless of whether the email exists).
+<!-- Any extra notes -->
 
 ## History
 
@@ -41,3 +26,4 @@ In Progress
 - **AUTH-00-01: CSRF Protection** (2026-10-16) — Spring Security + Spring Session JDBC (sessions in PostgreSQL, `SESSION` cookie HttpOnly/Secure/SameSite=Lax); CSRF tokens stored in the session and sent via `X-XSRF-TOKEN`; public `GET /api/v1/auth/csrf` returns token and header name; Problem Details 403 `FORBIDDEN` for missing/invalid tokens and 401 `UNAUTHORIZED` for unauthenticated requests; all non-public endpoints require auth; flow documented in `docs/csrf-protection.md`.
 - **AUTH-01-01: Registration API** (2026-10-16) — Public, CSRF-protected `POST /api/v1/auth/register` creating a `users` + `client_profiles` row (BCrypt hash, email trimmed/lowercased, case-insensitive unique index on `lower(email)`); returns 201 without logging in; 400 `VALIDATION_ERROR` with `fieldErrors` (password 12+ chars, ≤72 bytes) and 409 `EMAIL_ALREADY_EXISTS` via `ApiExceptionHandler`/`ApiException`; Problem Details always include `type`; Flyway introduced (V1 Spring Session tables, V2 users/profiles, `ddl-auto: validate`, see `docs/flyway-migrations.md`); backend moved to 4-space indentation and Lombok.
 - **AUTH-01-02: Registration Form** (2026-10-16) — Ant Design form on `/register` (first/last name, email, password, confirm) with client-side validation (required, email format, password 12+ chars and ≤72 bytes, matching passwords, API length limits); Fetch API client (`api/client.ts`) fetches a CSRF token before each POST and throws a typed `ApiError` from Problem Details; API `fieldErrors` and 409 `EMAIL_ALREADY_EXISTS` shown under fields, other errors in an alert; form disabled/loading while submitting; 201 redirects to `/login`; Vite dev proxy `/api` → `localhost:8080`; RTL + MSW tests; `docs/typescript-runtime-types.md`.
+- **AUTH-02-01: Login API** (2026-10-16) — Public, CSRF-protected `POST /api/v1/auth/login` authenticating email (trimmed/lowercased) + BCrypt password via a `DaoAuthenticationProvider`/`ClientUserDetailsService`; 200 returns `{ id, email, firstName, lastName }`; `SessionLogin` changes the session ID, replaces the CSRF token and saves the `SecurityContext` to the Spring Session JDBC session; same generic 401 `UNAUTHORIZED` for unknown email, wrong password, suspended/disabled/deleted accounts (status checked after the password); in-memory `LoginAttemptLimiter` (5 failures/email, 50/IP per 15 min, `app.security.login-rate-limit.*`) returns 429 `RATE_LIMIT_EXCEEDED`; `server.forward-headers-strategy: native` for client IPs behind the ALB; flow in `docs/session-login.md`.

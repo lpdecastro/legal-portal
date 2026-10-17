@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -40,6 +41,13 @@ class CaseController {
     @GetMapping("/{id}")
     CaseResponse get(@AuthenticationPrincipal AuthenticatedUser user, @PathVariable UUID id) {
         return caseService.getCase(user.getId(), id);
+    }
+
+    /** Updates the fields present in the body of one of the session's client's drafts. */
+    @PatchMapping("/{id}")
+    CaseResponse update(@AuthenticationPrincipal AuthenticatedUser user, @PathVariable UUID id,
+            @Valid @RequestBody UpdateCaseRequest request) {
+        return caseService.updateDraft(user.getId(), id, request);
     }
 
 }

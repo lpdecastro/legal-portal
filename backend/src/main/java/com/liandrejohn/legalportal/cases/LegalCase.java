@@ -82,6 +82,14 @@ public class LegalCase {
         return legalCase;
     }
 
+    /** Replaces the draft's editable fields. Callers check that the case is still a draft. */
+    public void editDraft(LegalCategory category, String title, String description, String location) {
+        this.category = category;
+        this.title = title;
+        this.description = description;
+        this.location = location;
+    }
+
     /**
      * Sets both timestamps from one clock reading, truncated to PostgreSQL's microsecond precision, so a new case's
      * {@code createdAt} and {@code updatedAt} are equal and match what is read back later.

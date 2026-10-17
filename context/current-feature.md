@@ -1,28 +1,18 @@
-# Current Feature: CASE-01-01 List Legal Categories API
+# Current Feature
 
-Authenticated `GET /api/v1/legal-categories` returning active legal categories for the Create/Edit Draft dropdown (Story CASE-01 – Legal Categories, BE).
+<!-- Feature name and short description -->
 
 ## Status
 
-In Progress
+<!-- Not Started / In Progress / Completed -->
 
 ## Goals
 
-- `GET /api/v1/legal-categories` requires an authenticated session; unauthenticated requests get 401 `UNAUTHORIZED` (Problem Details).
-- Returns `200 OK` with a JSON array of `{ id, name, description }` (DTOs only, never entities).
-- Only categories with `is_active = true` are returned.
-- Results sorted alphabetically by name.
-- No active categories returns `200 OK` with `[]`.
-- Errors (401, 500) follow RFC 9457 Problem Details with the standard extensions.
-- Tests cover: active categories returned, inactive excluded, alphabetical sort, empty result, unauthenticated rejected.
+<!-- Goals and requirements -->
 
 ## Notes
 
-- Spec: `context/epics/03-case-submission/stories/CASE-01-legal-categories/tasks/CASE-01-01-list-legal-categories-api.md`.
-- `legal_categories` table doesn't exist yet — add a Flyway `V3` migration per the data model: `id uuid PK`, `name varchar(100) unique not null`, `description text null`, `is_active boolean default true`, `created_at`/`updated_at timestamptz` (`ddl-auto: validate`, see `docs/flyway-migrations.md`).
-- Read-only GET, so no CSRF token needed; just ensure it falls under the authenticated-by-default security rules.
-- Business rule (later tasks): inactive categories cannot be selected when creating/updating a case — the entity/repository should be reusable for that check.
-- Follow-up FE task: CASE-01-02 Legal Category Dropdown.
+<!-- Any extra notes -->
 
 ## History
 
@@ -42,3 +32,4 @@ In Progress
 - **AUTH-03-02: Protected Routes** (2026-10-17) — `RequireAuth` layout route wraps `AuthenticatedLayout` and redirects signed-out clients to `/login` (replace); relies on `AuthProvider` holding rendering behind its `Spin` until the `GET /auth/me` check settles, so valid sessions survive refresh and protected pages never flash; `api/client.ts` exposes `onUnauthorized` and `AuthProvider` signs the client out on any 401, so sessions that expire mid-use also land on `/login`; routes exported as `routes` for tests; `RequireAuth` tests; flow in `docs/protected-routes.md`.
 - **AUTH-04-01: Logout API** (2026-10-17) — Authenticated, CSRF-protected `POST /api/v1/auth/logout` (`LogoutController`) ends the session via `SessionLogin.end` (`SecurityContextLogoutHandler`); Spring Session deletes the `SPRING_SESSION` row and expires the cookie (`SESSION=; Max-Age=0; Path=/; Secure; HttpOnly; SameSite=Lax`); returns 204 with no body; missing/invalid/pre-login CSRF token gets 403 `FORBIDDEN` with the session kept; anonymous sessions and reuse of the logged-out session get 401 `UNAUTHORIZED`; Spring Security's default `/logout` filter stays disabled; `LogoutIntegrationTest` plus a real-server cleared-cookie check in `SessionCookieTest`; flow in `docs/session-logout.md`.
 - **AUTH-04-02: Logout UI** (2026-10-17) — Profile menu "Log out" calls `POST /api/v1/auth/logout` via `useLogout` → `logout()` → new `postNoContent` client helper (fresh CSRF token in `X-XSRF-TOKEN`, shares `sendWithCsrf` with `postJson`); on 204 clears the user from auth state and navigates to `/login` (replace), so `RequireAuth` keeps protected pages out of reach; a 401 (session already gone) is treated as signed out; other failures (403/5xx/network) show the "We couldn't log you out. Please try again." toast and keep the client signed in; profile button shows a spinner and the menu is disabled while in flight (double submits ignored); `ResizeObserver` stub added to test setup for antd popups; `ProfileMenu` tests against the real route tree; UI flow added to `docs/session-logout.md`.
+- **CASE-01-01: List Legal Categories API** (2026-10-17) — Authenticated `GET /api/v1/legal-categories` (`LegalCategoryController` → `LegalCategoryService`) returns active categories as `{ id, name, description }` (`LegalCategoryResponse`) sorted by name, `[]` when none are active, 401 `UNAUTHORIZED` Problem Details without a session; Flyway `V3__create_legal_categories.sql` creates `legal_categories` (unique name, `is_active`) and seeds six active categories; `LegalCategoryRepository.findByActiveTrueOrderByNameAsc` reusable for the inactive-category check on cases; catch-all `ApiExceptionHandler.handleUnexpected` returns 500 `INTERNAL_ERROR` Problem Details (cause logged under the `traceId`) and rethrows Spring MVC (`ErrorResponse`) and Spring Security exceptions; entities now generate UUID v7 IDs (`@UuidGenerator(style = VERSION_7)`, new coding standard; SQL-seeded rows stay v4 via `gen_random_uuid()`); `99-backlog` epic added; `LegalCategoryIntegrationTest` (rolled-back transactions), `LegalCategorySeedTest`, `ApiExceptionHandlerTest`.

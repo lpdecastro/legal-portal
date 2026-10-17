@@ -52,6 +52,7 @@ Current migrations:
 |---|---|---|
 | 1 | `V1__create_spring_session_tables.sql` | `SPRING_SESSION`, `SPRING_SESSION_ATTRIBUTES` |
 | 2 | `V2__create_users_and_client_profiles.sql` | `users`, `client_profiles` |
+| 3 | `V3__create_legal_categories.sql` | `legal_categories`, seeded with six active categories |
 
 ## What happens at startup
 

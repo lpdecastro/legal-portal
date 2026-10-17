@@ -1,18 +1,28 @@
-# Current Feature
+# Current Feature: CASE-01-01 List Legal Categories API
 
-<!-- Feature name and short description -->
+Authenticated `GET /api/v1/legal-categories` returning active legal categories for the Create/Edit Draft dropdown (Story CASE-01 – Legal Categories, BE).
 
 ## Status
 
-<!-- Not Started / In Progress / Completed -->
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- `GET /api/v1/legal-categories` requires an authenticated session; unauthenticated requests get 401 `UNAUTHORIZED` (Problem Details).
+- Returns `200 OK` with a JSON array of `{ id, name, description }` (DTOs only, never entities).
+- Only categories with `is_active = true` are returned.
+- Results sorted alphabetically by name.
+- No active categories returns `200 OK` with `[]`.
+- Errors (401, 500) follow RFC 9457 Problem Details with the standard extensions.
+- Tests cover: active categories returned, inactive excluded, alphabetical sort, empty result, unauthenticated rejected.
 
 ## Notes
 
-<!-- Any extra notes -->
+- Spec: `context/epics/03-case-submission/stories/CASE-01-legal-categories/tasks/CASE-01-01-list-legal-categories-api.md`.
+- `legal_categories` table doesn't exist yet — add a Flyway `V3` migration per the data model: `id uuid PK`, `name varchar(100) unique not null`, `description text null`, `is_active boolean default true`, `created_at`/`updated_at timestamptz` (`ddl-auto: validate`, see `docs/flyway-migrations.md`).
+- Read-only GET, so no CSRF token needed; just ensure it falls under the authenticated-by-default security rules.
+- Business rule (later tasks): inactive categories cannot be selected when creating/updating a case — the entity/repository should be reusable for that check.
+- Follow-up FE task: CASE-01-02 Legal Category Dropdown.
 
 ## History
 

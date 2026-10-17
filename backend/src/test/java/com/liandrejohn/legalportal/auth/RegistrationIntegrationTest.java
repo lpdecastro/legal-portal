@@ -74,6 +74,8 @@ class RegistrationIntegrationTest {
             .andReturn();
         UUID id = UUID.fromString(JsonPath.read(result.getResponse().getContentAsString(), "$.id"));
 
+        assertThat(id.version()).isEqualTo(7);
+
         Map<String, Object> user = jdbcTemplate.queryForMap("SELECT * FROM users WHERE id = ?", id);
         assertThat(user).containsEntry("email", email)
             .containsEntry("role", "CLIENT")
@@ -83,6 +85,7 @@ class RegistrationIntegrationTest {
 
         Map<String, Object> profile = jdbcTemplate.queryForMap("SELECT * FROM client_profiles WHERE user_id = ?", id);
         assertThat(profile).containsEntry("first_name", "John").containsEntry("last_name", "Doe");
+        assertThat(((UUID) profile.get("id")).version()).isEqualTo(7);
     }
 
     @Test

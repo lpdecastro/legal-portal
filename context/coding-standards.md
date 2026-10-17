@@ -19,3 +19,7 @@
 
 - Use 4-spaces tab
 - Use Lombok annotations to reduce boilerplate code in Java classes
+
+## Hibernate
+
+- Use UUID v7 for primary keys

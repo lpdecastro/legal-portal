@@ -10,6 +10,9 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -52,6 +55,26 @@ class ApiExceptionHandler {
     ResponseEntity<ProblemDetail> handleApiException(ApiException ex, HttpServletRequest request) {
         return respond(request,
                 ProblemDetails.of(ex.getStatus(), ex.getErrorCode(), ex.getMessage(), request.getRequestURI()));
+    }
+
+    /**
+     * Unexpected failures become a generic 500 that reveals nothing about the cause; the details go to the log under
+     * the response's trace ID. Spring MVC exceptions (404, 405, ...) and Spring Security exceptions are rethrown so
+     * their own resolvers and filters still answer them.
+     */
+    @ExceptionHandler(Exception.class)
+    ResponseEntity<ProblemDetail> handleUnexpected(Exception ex, HttpServletRequest request) throws Exception {
+        if (ex instanceof ErrorResponse || ex instanceof AccessDeniedException
+                || ex instanceof AuthenticationException) {
+            throw ex;
+        }
+        ProblemDetail problem = ProblemDetails.of(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_ERROR",
+                "An unexpected error occurred. Please try again later.", request.getRequestURI());
+        log.error("{} {} failed [traceId={}]", request.getMethod(), request.getRequestURI(),
+                problem.getProperties().get("traceId"), ex);
+        return ResponseEntity.status(problem.getStatus())
+            .contentType(MediaType.APPLICATION_PROBLEM_JSON)
+            .body(problem);
     }
 
     private static ResponseEntity<ProblemDetail> respond(HttpServletRequest request, ProblemDetail problem) {

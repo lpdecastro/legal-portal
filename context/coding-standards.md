@@ -20,6 +20,10 @@
 - Use 4-spaces tab
 - Use Lombok annotations to reduce boilerplate code in Java classes
 
+## API Docs
+
+- Tag every controller with its API area
+
 ## Hibernate
 
 - Use UUID v7 for primary keys

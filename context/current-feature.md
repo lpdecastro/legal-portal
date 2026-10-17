@@ -1,18 +1,22 @@
-# Current Feature
+# Current Feature: BKL-02: Group API Docs by Area
 
-<!-- Feature name and short description -->
+Group API docs endpoints by area instead of by controller class name.
 
 ## Status
 
-<!-- Not Started / In Progress / Completed -->
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- `/scalar` sidebar shows the groups Auth, Cases and Legal Categories.
+- Every endpoint appears under one of these groups.
+- No group named `*-controller` appears.
 
 ## Notes
 
-<!-- Any extra notes -->
+- Spec: `context/epics/99-backlog/tasks/BKL-02-group-api-docs-by-area.md`.
+- Depends on FND-08.
+- Coding standard: every controller gets an OpenAPI `@Tag` for its area, reusing existing tags.
 
 ## History
 

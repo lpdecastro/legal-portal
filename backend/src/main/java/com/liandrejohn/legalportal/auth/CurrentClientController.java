@@ -9,12 +9,16 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
+
+import com.liandrejohn.legalportal.openapi.ApiTags;
 import com.liandrejohn.legalportal.security.AuthenticatedUser;
 import com.liandrejohn.legalportal.security.AuthenticationRequiredException;
 import com.liandrejohn.legalportal.security.SessionLogin;
 
 @Slf4j
 @RestController
+@Tag(name = ApiTags.AUTH)
 @RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
 class CurrentClientController {

@@ -17,6 +17,7 @@ Collect improvements and technical debt that are worth doing but aren't schedule
 | ID     | Task                       | Status      |
 | ------ | -------------------------- | ----------- |
 | BKL-01 | Inactive Category on Edit Draft | Not Started |
+| BKL-02 | Group API Docs by Area | Not Started |
 
 ## Out of Scope
 

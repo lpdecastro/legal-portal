@@ -1,6 +1,10 @@
 package com.liandrejohn.legalportal.openapi;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.everyItem;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.in;
+import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -33,6 +37,16 @@ class ApiDocsTest {
             .andExpect(jsonPath("$.info.title").value("Legal Portal API"))
             .andExpect(jsonPath("$.info.version").value("v1"))
             .andExpect(jsonPath("$.paths['/api/v1/cases']").exists());
+    }
+
+    @Test
+    void everyOperationIsGroupedUnderOneArea() throws Exception {
+        mockMvc.perform(get("/v3/api-docs"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.paths.*.*.tags", everyItem(hasSize(1))))
+            .andExpect(jsonPath("$.paths.*.*.tags[*]", not(hasSize(0))))
+            .andExpect(jsonPath("$.paths.*.*.tags[*]",
+                    everyItem(in(new String[] { ApiTags.AUTH, ApiTags.CASES, ApiTags.LEGAL_CATEGORIES }))));
     }
 
     @Test

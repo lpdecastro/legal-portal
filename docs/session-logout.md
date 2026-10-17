@@ -16,6 +16,17 @@ If the old cookie value is sent again, it no longer matches a session, so protec
 
 Spring Security's built-in `POST /logout` filter stays turned off in [`SecurityConfig`](../backend/src/main/java/com/liandrejohn/legalportal/security/SecurityConfig.java). Logout is a normal API endpoint under `/api/v1`, and its errors use Problem Details like every other endpoint.
 
+## Logging out in the UI
+
+Added in AUTH-04-02.
+
+1. The client picks **Log out** in the header [`ProfileMenu`](../frontend/src/components/ProfileMenu.tsx).
+2. [`useLogout`](../frontend/src/hooks/useLogout.ts) calls `logout()` in [`api/auth.ts`](../frontend/src/api/auth.ts). That uses `postNoContent` in [`api/client.ts`](../frontend/src/api/client.ts), which fetches a fresh CSRF token and sends it in `X-XSRF-TOKEN`.
+3. While the request runs, the profile button shows a spinner and the menu is disabled, so logout can't be sent twice.
+4. On **204**, the user is cleared from auth state and the app navigates to `/login` with `replace`. `RequireAuth` then keeps every protected page out of reach.
+5. A **401** means the session had already ended. The `onUnauthorized` listener has signed the client out, so this is treated like a successful logout.
+6. Any other failure (403, 5xx, network) shows the toast "We couldn't log you out. Please try again." and leaves the client signed in, because the server session may still be valid.
+
 ## Tests
 
 - [`LogoutIntegrationTest`](../backend/src/test/java/com/liandrejohn/legalportal/auth/LogoutIntegrationTest.java) (MockMvc + Testcontainers) covers:
@@ -24,3 +35,4 @@ Spring Security's built-in `POST /logout` filter stays turned off in [`SecurityC
   - 403 Problem Details for a missing, invalid or pre-login CSRF token, with the session kept
   - 401 for an anonymous session
 - [`SessionCookieTest`](../backend/src/test/java/com/liandrejohn/legalportal/security/SessionCookieTest.java) checks the cleared cookie's attributes against a real server, because MockMvc doesn't apply `server.servlet.session.cookie`.
+- [`ProfileMenu.test.tsx`](../frontend/src/components/ProfileMenu.test.tsx) (RTL + MSW, real route tree) covers the UI: the CSRF header is sent, the client is redirected to `/login`, protected pages stay blocked afterwards, the loading state, error toasts for 403/500/network errors with the client still signed in, and a 401 treated as signed out.

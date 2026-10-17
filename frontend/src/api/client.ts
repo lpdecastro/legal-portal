@@ -76,17 +76,30 @@ export async function getJson<TResponse>(path: string): Promise<TResponse> {
   return (await response.json()) as TResponse
 }
 
-// Sends a CSRF-protected JSON request, fetching a fresh token first.
-export async function postJson<TResponse>(path: string, body: unknown): Promise<TResponse> {
+// Sends a CSRF-protected POST, fetching a fresh token first.
+async function sendWithCsrf(path: string, init: RequestInit & { headers?: Record<string, string> }): Promise<Response> {
   const csrf = await fetchCsrfToken()
-  const response = await send(path, {
+  return send(path, {
+    ...init,
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
       Accept: 'application/json, application/problem+json',
+      ...init.headers,
       [csrf.headerName]: csrf.token,
     },
+  })
+}
+
+// Sends a CSRF-protected JSON request and returns the JSON response.
+export async function postJson<TResponse>(path: string, body: unknown): Promise<TResponse> {
+  const response = await sendWithCsrf(path, {
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   })
   return (await response.json()) as TResponse
+}
+
+// Sends a CSRF-protected POST with no body to an endpoint that answers 204 No Content.
+export async function postNoContent(path: string): Promise<void> {
+  await sendWithCsrf(path, {})
 }

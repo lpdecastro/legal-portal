@@ -18,6 +18,14 @@ Object.defineProperty(window, 'matchMedia', {
   })),
 })
 
+// jsdom does not implement ResizeObserver either, which antd's popups (e.g. Dropdown) observe their content with.
+class ResizeObserverStub {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+vi.stubGlobal('ResizeObserver', ResizeObserverStub)
+
 // Fail loudly on any request a test did not mock.
 beforeAll(() => server.listen({ onUnhandledFrame: 'error' }))
 

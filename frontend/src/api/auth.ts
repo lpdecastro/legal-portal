@@ -1,4 +1,4 @@
-import { ApiError, getJson, postJson } from './client'
+import { ApiError, getJson, postJson, postNoContent } from './client'
 
 export interface RegisterRequest {
   firstName: string
@@ -33,6 +33,11 @@ export function register(request: RegisterRequest): Promise<RegistrationResponse
 
 export function login(request: LoginRequest): Promise<AuthenticatedUser> {
   return postJson<AuthenticatedUser>('/auth/login', request)
+}
+
+// Ends the session on the server (204). The server also expires the SESSION cookie.
+export function logout(): Promise<void> {
+  return postNoContent('/auth/logout')
 }
 
 // Returns the client behind the session cookie, or null when there is no valid session (401).

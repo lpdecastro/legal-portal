@@ -1,18 +1,29 @@
-# Current Feature
+# Current Feature: AUTH-04-02 Logout UI
 
-<!-- Feature name and short description -->
+Allow authenticated clients to log out through the React UI.
 
 ## Status
 
-<!-- Not Started / In Progress / Completed -->
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- Add a logout action to the header profile menu.
+- Integrate with `POST /api/v1/auth/logout` using the Fetch API client, following the contract in `AUTH-04-01-logout-api.md`.
+- Include the CSRF token in the request header (`X-XSRF-TOKEN`).
+- Clear the authenticated user from React state after a successful logout.
+- Redirect to `/login` after a successful logout.
+- Protected pages are inaccessible after logout.
+- Handle API errors and loading state: errors show an appropriate message without falsely marking the client as logged out.
+- Add automated tests; all tests pass.
 
 ## Notes
 
-<!-- Any extra notes -->
+- Type: Frontend (FE). Spec: `context/epics/02-authentication/stories/AUTH-04-logout/tasks/AUTH-04-02-logout-ui.md`.
+- API (AUTH-04-01): authenticated, CSRF-protected; 204 with no body on success; 403 `FORBIDDEN` for missing/invalid CSRF token (session kept); 401 `UNAUTHORIZED` for anonymous/already-logged-out sessions.
+- Existing pieces to reuse: `api/client.ts` (CSRF fetch before POST, typed `ApiError`, `onUnauthorized`), `AuthProvider`/`AuthContext`/`useAuth`, `ProfileMenu`, `RequireAuth` (redirects signed-out clients to `/login`).
+- A 401 already triggers `onUnauthorized` sign-out via `AuthProvider`, so an expired session on logout ends signed out anyway.
+- Out of scope: logout API implementation, server-side session invalidation, protected route implementation.
 
 ## History
 

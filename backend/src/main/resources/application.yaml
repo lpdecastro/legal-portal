@@ -51,6 +51,10 @@ scalar:
   enabled: ${SCALAR_ENABLED:true}
   # Empty inline icon: the default favicon.svg (and the browser's /favicon.ico fallback) don't exist and get 401
   favicon: "data:,"
+logging:
+  level:
+    # Executed SQL; set SQL_LOG_LEVEL=DEBUG in .env to log it locally. Bind parameters stay unlogged (user data)
+    org.hibernate.SQL: ${SQL_LOG_LEVEL:INFO}
 management:
   endpoints:
     web:

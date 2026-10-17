@@ -1,18 +1,24 @@
-# Current Feature
+# Current Feature: BKL-03 SQL Debug Logging
 
-<!-- Feature name and short description -->
+Turn on Hibernate SQL logging from `.env` for local debugging (BE).
 
 ## Status
 
-<!-- Not Started / In Progress / Completed -->
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- Env var `SQL_LOG_LEVEL` sets the `org.hibernate.SQL` log level.
+- Default is production-safe: SQL not logged (`INFO`).
+- `SQL_LOG_LEVEL=DEBUG` in `.env` logs each executed SQL statement after a restart.
+- `.env.example` documents the variable and its default.
 
 ## Notes
 
-<!-- Any extra notes -->
+- Spec: `context/epics/99-backlog/tasks/BKL-03-sql-debug-logging.md`.
+- Follow the `OPENAPI_ENABLED` pattern: `logging.level.org.hibernate.SQL: ${SQL_LOG_LEVEL:INFO}` in `application.yaml`.
+- `.env` is imported as a properties file, so Boot's relaxed `LOGGING_LEVEL_ORG_HIBERNATE_SQL` env binding doesn't apply there; hence an explicit placeholder.
+- Bind parameters (`org.hibernate.orm.jdbc.bind`) out of scope; they'd log user data.
 
 ## History
 

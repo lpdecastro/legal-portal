@@ -1,25 +1,18 @@
-# Current Feature: FND-08: OpenAPI and Scalar Setup
+# Current Feature
 
-Set up API documentation in `backend/` using Springdoc OpenAPI and Scalar.
+<!-- Feature name and short description -->
 
 ## Status
 
-In Progress
+<!-- Not Started / In Progress / Completed -->
 
 ## Goals
 
-- Add Springdoc OpenAPI with Scalar.
-- Configure API title and version.
-- Configure `OPENAPI_ENABLED` and `SCALAR_ENABLED` in `application.yaml` from environment variables.
-- `/scalar` loads the API documentation UI locally.
-- `/v3/api-docs` returns valid OpenAPI JSON with the configured title and version.
-- Setting both environment variables to `false` disables the documentation endpoints after a backend restart.
+<!-- Goals and requirements -->
 
 ## Notes
 
-- Spec: `context/epics/01-foundation/tasks/FND-08-openapi-and-scalar-setup.md`.
-- Out of scope: business APIs, Postman collections.
-- Docs endpoints must be reachable through Spring Security (currently all non-public endpoints require auth).
+<!-- Any extra notes -->
 
 ## History
 
@@ -47,3 +40,4 @@ In Progress
 - **CASE-03-02: Update Draft API** (2026-10-17) — Authenticated, CSRF-protected `PATCH /api/v1/cases/{id}` (`CaseController.update` → `CaseService.updateDraft`) partially updates one of the session's client's drafts and returns 200 `CaseResponse`; `UpdateCaseRequest` is a class with `Optional` fields set via setters (Jackson gives records an empty `Optional` for omitted fields too), so omitted fields (`null`) stay unchanged and explicit JSON `null` (empty `Optional`) clears `description`/`location`; `title`/`categoryId` can't be cleared (400 "… is required"); constraints on `Optional` type arguments are skipped for omitted fields; input normalized like Create Draft; check order: Bean Validation 400 → 404 `CASE_NOT_FOUND` (other client's/deleted/nonexistent) → 409 `INVALID_CASE_STATE` (new `InvalidCaseStateException`, non-drafts) → 400 unknown/inactive category; `LegalCase.editDraft`, `saveAndFlush` so `@PreUpdate` refreshes `updatedAt` in the response, `createdAt`/`DRAFT` kept; `UpdateCaseIntegrationTest` (rows unchanged on every rejection, missing/invalid CSRF 403); left-out vs cleared tables in `docs/partial-case-updates.md`.
 - **CASE-03-03: Edit Draft Form** (2026-10-17) — `EditCasePage` on `/cases/:id/edit` loads the case via `fetchCase()` (`api/cases.ts`) and `useCase` (spinner; error `Alert` with Retry; 404 `CASE_NOT_FOUND` and malformed-ID 400 show a "Case not found" `Result`; submitted/closed cases show "This case can't be edited" with View case); drafts open prefilled with the category preselected; Save Changes sends `PATCH` via new `patchJson` client helper, `updateCase()` and `useUpdateCase` with only modified fields (normalized like Create Draft, cleared description/location sent as `null`); no changes skips the request with "No changes to save."; success shows "Draft updated." and navigates to `caseDetailsPath(id)`; shared `CaseForm` component and `useCaseFormErrors` hook (field errors under fields, others in the alert, values kept) reused by `CreateCasePage`; page keyed by ID; `EditCasePage` RTL + MSW tests; task spec gained ACs 16–17.
 - **CASE-04-01: Delete Draft API** (2026-10-17) — Authenticated, CSRF-protected `DELETE /api/v1/cases/{id}` (`CaseController.delete` → `CaseService.deleteDraft`) soft-deletes one of the session's client's drafts by setting `deleted_at` (`LegalCase.softDelete`, micros-truncated; `@PreUpdate` also refreshes `updated_at`) and returns 204 with no body; the row stays and `findByIdAndClientIdAndDeletedAtIsNull` stops finding it, so later `GET` and repeated `DELETE` get 404; check order like Update Draft: 404 `CASE_NOT_FOUND` (other client's/deleted/nonexistent) → 409 `INVALID_CASE_STATE` "Only draft cases can be deleted." (submitted/closed); non-UUID IDs 400, unauthenticated/suspended 401, missing/invalid CSRF 403; `DeleteCaseIntegrationTest` (rows unchanged on every rejection).
+- **FND-08: OpenAPI and Scalar Setup** (2026-10-18) — Springdoc (`springdoc-openapi-starter-webmvc-scalar` 3.1.1, built for Boot 4.1) serves the generated OpenAPI 3.1 document at public `GET /v3/api-docs` (title "Legal Portal API", version "v1" from `app.openapi.*` via `OpenApiProperties`/`OpenApiConfig`) and the Scalar UI at public `GET /scalar`; `OPENAPI_ENABLED`/`SCALAR_ENABLED` (default `true`, in `.env.example`) turn them off after a restart, after which the paths aren't served (signed-out requests get 401 like any unknown path, since the 404's `/error` dispatch requires auth); Scalar favicon set to `data:,` so the browser doesn't request a missing `/favicon.svg`/`/favicon.ico`; `ApiDocsTest`, `ApiDocsDisabledTest`; `docs/api-docs.md`, README link.

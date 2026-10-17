@@ -7,6 +7,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -48,6 +49,13 @@ class CaseController {
     CaseResponse update(@AuthenticationPrincipal AuthenticatedUser user, @PathVariable UUID id,
             @Valid @RequestBody UpdateCaseRequest request) {
         return caseService.updateDraft(user.getId(), id, request);
+    }
+
+    /** Soft-deletes one of the session's client's drafts. */
+    @DeleteMapping("/{id}")
+    ResponseEntity<Void> delete(@AuthenticationPrincipal AuthenticatedUser user, @PathVariable UUID id) {
+        caseService.deleteDraft(user.getId(), id);
+        return ResponseEntity.noContent().build();
     }
 
 }

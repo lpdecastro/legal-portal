@@ -90,6 +90,11 @@ public class LegalCase {
         this.location = location;
     }
 
+    /** Soft-deletes the case; the row stays and owner lookups stop finding it. Callers check that it is a draft. */
+    public void softDelete() {
+        deletedAt = Instant.now().truncatedTo(ChronoUnit.MICROS);
+    }
+
     /**
      * Sets both timestamps from one clock reading, truncated to PostgreSQL's microsecond precision, so a new case's
      * {@code createdAt} and {@code updatedAt} are equal and match what is read back later.

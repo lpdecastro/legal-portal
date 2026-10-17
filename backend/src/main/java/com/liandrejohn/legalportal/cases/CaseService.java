@@ -69,6 +69,18 @@ class CaseService {
         return CaseResponse.from(legalCaseRepository.saveAndFlush(legalCase));
     }
 
+    /** Soft-deletes one of the client's own drafts. Ownership is checked before status, as for updates. */
+    @Transactional
+    void deleteDraft(UUID userId, UUID caseId) {
+        ClientProfile client = findActiveClient(userId);
+        LegalCase legalCase = legalCaseRepository.findByIdAndClientIdAndDeletedAtIsNull(caseId, client.getId())
+            .orElseThrow(CaseNotFoundException::new);
+        if (legalCase.getStatus() != CaseStatus.DRAFT) {
+            throw new InvalidCaseStateException("Only draft cases can be deleted.");
+        }
+        legalCase.softDelete();
+    }
+
     /** Unknown and inactive categories get the same message, so IDs of hidden categories aren't revealed. */
     private LegalCategory findActiveCategory(UUID categoryId) {
         return legalCategoryRepository.findByIdAndActiveTrue(categoryId)

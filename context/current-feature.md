@@ -1,18 +1,29 @@
-# Current Feature
+# Current Feature: CASE-04-01 Delete Draft API
 
-<!-- Feature name and short description -->
+Soft-delete an existing draft case belonging to the authenticated client via `DELETE /api/v1/cases/{id}`.
 
 ## Status
 
-<!-- Not Started / In Progress / Completed -->
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- Authenticated, CSRF-protected `DELETE /api/v1/cases/{id}` returns `204 No Content` with no body
+- Only the session's client's own `DRAFT` cases can be deleted
+- Deletion sets `deleted_at` to the current timestamp; the row stays in the database
+- Soft-deleted cases are excluded from later retrievals (`GET /api/v1/cases/{id}` returns 404)
+- Repeated deletion, another client's case and nonexistent cases return 404 `CASE_NOT_FOUND`
+- Submitted and closed cases return 409 `INVALID_CASE_STATE`
+- Invalid UUID returns 400 `VALIDATION_ERROR`; unauthenticated returns 401; missing/invalid CSRF returns 403
+- Failed requests do not modify the case; all errors are RFC 9457 Problem Details
+- Integration tests cover every case above
 
 ## Notes
 
-<!-- Any extra notes -->
+- Type: BE. Story: CASE-04 – Delete Draft Case.
+- Dependencies: CASE-02-01 (Create Draft API), CASE-03-01 (Get Case Details API), auth + CSRF.
+- Reuse existing pieces: `LegalCaseRepository.findByIdAndClientIdAndDeletedAtIsNull`, `CaseNotFoundException`, `InvalidCaseStateException`, `MethodArgumentTypeMismatchException` handler; check order like Update Draft (404 → 409).
+- Test patterns: follow `UpdateCaseIntegrationTest` / `GetCaseIntegrationTest` (SQL-inserted submitted/closed/deleted rows, rows unchanged on rejection).
 
 ## History
 

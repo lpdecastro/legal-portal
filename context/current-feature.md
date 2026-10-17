@@ -1,18 +1,31 @@
-# Current Feature
+# Current Feature: CASE-03-03 Edit Draft Form
 
-<!-- Feature name and short description -->
+Ant Design Edit Draft form letting authenticated clients update their own draft cases, reusing the Create Draft form.
 
 ## Status
 
-<!-- Not Started / In Progress / Completed -->
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- Edit Draft page reachable for the client's own draft case; unauthenticated clients redirected to login
+- Load case via `GET /api/v1/cases/{id}` with a loading indicator; load failures show an error message
+- Form prefilled: title (required, ≤200), legal category (required, `LegalCategorySelect`, preselected), description (optional), location (optional, ≤255)
+- Client-side required and length validation before saving
+- Save Changes sends `PATCH /api/v1/cases/{id}` with modified fields only
+- Save button disabled with loading indicator while saving
+- Success shows a message and navigates to the case details page
+- API `fieldErrors` shown under fields; other API failures shown in an alert without clearing the form
+- Submitted and closed cases cannot be edited
+- Missing cases or another client's cases (404 `CASE_NOT_FOUND`) show a not-found state
+- RTL + MSW tests cover populate, preselected category, modify/save, validation, success/navigation, loading states, field errors, failure preserving values, non-draft, not-found, unauthenticated redirect
 
 ## Notes
 
-<!-- Any extra notes -->
+- Spec: `context/epics/03-case-submission/stories/CASE-03-edit-draft/tasks/CASE-03-03-edit-draft-form.md`
+- Type: FE. Reuse `CreateCasePage` form (extract shared form component), `api/cases.ts`, `useCreateCase` patterns.
+- PATCH semantics (CASE-03-02): omitted fields unchanged; explicit `null` clears `description`/`location`; `title`/`categoryId` can't be cleared; non-drafts → 409 `INVALID_CASE_STATE`.
+- Dependencies: CASE-01-02, CASE-02-02, CASE-03-01, CASE-03-02, protected routes.
 
 ## History
 

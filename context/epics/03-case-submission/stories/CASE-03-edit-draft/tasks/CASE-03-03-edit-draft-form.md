@@ -30,6 +30,8 @@ Reuse the Create Draft form component where possible.
 13. Submitted and closed cases cannot be edited.
 14. Unauthenticated clients are redirected to login.
 15. Missing cases or cases belonging to another client display a not-found state.
+16. Saving with no changes skips the API call, shows "No changes to save." and navigates to the case details page.
+17. Malformed case IDs (400) display the same not-found state.
 
 ## Testing
 
@@ -43,6 +45,7 @@ Reuse the Create Draft form component where possible.
 - Verify API failures preserve entered values.
 - Verify submitted and closed cases cannot be edited.
 - Verify missing or unauthorized cases display a not-found state.
+- Verify saving with no changes sends no request.
 - Verify unauthenticated clients are redirected to login.
 
 ## Dependencies

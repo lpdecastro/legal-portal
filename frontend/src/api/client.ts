@@ -76,12 +76,12 @@ export async function getJson<TResponse>(path: string): Promise<TResponse> {
   return (await response.json()) as TResponse
 }
 
-// Sends a CSRF-protected POST, fetching a fresh token first.
+// Sends a CSRF-protected request (POST unless `init.method` says otherwise), fetching a fresh token first.
 async function sendWithCsrf(path: string, init: RequestInit & { headers?: Record<string, string> }): Promise<Response> {
   const csrf = await fetchCsrfToken()
   return send(path, {
-    ...init,
     method: 'POST',
+    ...init,
     headers: {
       Accept: 'application/json, application/problem+json',
       ...init.headers,
@@ -93,6 +93,16 @@ async function sendWithCsrf(path: string, init: RequestInit & { headers?: Record
 // Sends a CSRF-protected JSON request and returns the JSON response.
 export async function postJson<TResponse>(path: string, body: unknown): Promise<TResponse> {
   const response = await sendWithCsrf(path, {
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  return (await response.json()) as TResponse
+}
+
+// Sends a CSRF-protected JSON PATCH and returns the JSON response.
+export async function patchJson<TResponse>(path: string, body: unknown): Promise<TResponse> {
+  const response = await sendWithCsrf(path, {
+    method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   })

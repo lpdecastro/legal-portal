@@ -1,29 +1,18 @@
-# Current Feature: CASE-01-02 Legal Category Dropdown
+# Current Feature
 
-Reusable Ant Design legal category dropdown for the Create/Edit Draft forms (FE).
+<!-- Feature name and short description -->
 
 ## Status
 
-In Progress
+<!-- Not Started / In Progress / Completed -->
 
 ## Goals
 
-- Reusable dropdown component loads categories from `GET /api/v1/legal-categories`
-- Categories displayed alphabetically by name
-- Client can select one category; selected value is reflected in the form (works as an antd `Form.Item` control)
-- Existing category is preselected when editing a draft
-- Loading state while fetching
-- Appropriate error message on API failure, with a way to retry
-- Empty state when no categories are available
-- RTL + MSW tests: categories shown, selection updates form value, preselection, loading, error + retry, empty state
+<!-- Goals and requirements -->
 
 ## Notes
 
-- Story: CASE-01 – Legal Categories; depends on CASE-01-01 (API returns active categories `{ id, name, description }` sorted by name, `[]` when none, 401 without a session).
-- Type: FE only. Create/Edit Draft forms don't exist yet — build the component standalone for them to consume.
-- Use `api/client.ts` for the GET and the existing 401 handling (`onUnauthorized`); no `any`; reusable logic in a custom hook per coding standards.
-- Tests: `renderWithProviders` + `server.use(...)`; unhandled requests fail.
-- Definition of Done: component implemented, all acceptance criteria met, frontend tests pass.
+<!-- Any extra notes -->
 
 ## History
 
@@ -44,3 +33,4 @@ In Progress
 - **AUTH-04-01: Logout API** (2026-10-17) — Authenticated, CSRF-protected `POST /api/v1/auth/logout` (`LogoutController`) ends the session via `SessionLogin.end` (`SecurityContextLogoutHandler`); Spring Session deletes the `SPRING_SESSION` row and expires the cookie (`SESSION=; Max-Age=0; Path=/; Secure; HttpOnly; SameSite=Lax`); returns 204 with no body; missing/invalid/pre-login CSRF token gets 403 `FORBIDDEN` with the session kept; anonymous sessions and reuse of the logged-out session get 401 `UNAUTHORIZED`; Spring Security's default `/logout` filter stays disabled; `LogoutIntegrationTest` plus a real-server cleared-cookie check in `SessionCookieTest`; flow in `docs/session-logout.md`.
 - **AUTH-04-02: Logout UI** (2026-10-17) — Profile menu "Log out" calls `POST /api/v1/auth/logout` via `useLogout` → `logout()` → new `postNoContent` client helper (fresh CSRF token in `X-XSRF-TOKEN`, shares `sendWithCsrf` with `postJson`); on 204 clears the user from auth state and navigates to `/login` (replace), so `RequireAuth` keeps protected pages out of reach; a 401 (session already gone) is treated as signed out; other failures (403/5xx/network) show the "We couldn't log you out. Please try again." toast and keep the client signed in; profile button shows a spinner and the menu is disabled while in flight (double submits ignored); `ResizeObserver` stub added to test setup for antd popups; `ProfileMenu` tests against the real route tree; UI flow added to `docs/session-logout.md`.
 - **CASE-01-01: List Legal Categories API** (2026-10-17) — Authenticated `GET /api/v1/legal-categories` (`LegalCategoryController` → `LegalCategoryService`) returns active categories as `{ id, name, description }` (`LegalCategoryResponse`) sorted by name, `[]` when none are active, 401 `UNAUTHORIZED` Problem Details without a session; Flyway `V3__create_legal_categories.sql` creates `legal_categories` (unique name, `is_active`) and seeds six active categories; `LegalCategoryRepository.findByActiveTrueOrderByNameAsc` reusable for the inactive-category check on cases; catch-all `ApiExceptionHandler.handleUnexpected` returns 500 `INTERNAL_ERROR` Problem Details (cause logged under the `traceId`) and rethrows Spring MVC (`ErrorResponse`) and Spring Security exceptions; entities now generate UUID v7 IDs (`@UuidGenerator(style = VERSION_7)`, new coding standard; SQL-seeded rows stay v4 via `gen_random_uuid()`); `99-backlog` epic added; `LegalCategoryIntegrationTest` (rolled-back transactions), `LegalCategorySeedTest`, `ApiExceptionHandlerTest`.
+- **CASE-01-02: Legal Category Dropdown** (2026-10-17) — Reusable `LegalCategorySelect` (antd `Select`, works as a `Form.Item` control, value = category ID) for the Create/Edit Draft forms; `useLegalCategories` loads `GET /api/v1/legal-categories` via `fetchLegalCategories()` (`api/legalCategories.ts`) and sorts by name; loading state (disabled, "Loading categories…", preselected raw ID hidden), error `Alert` with Retry, "No legal categories available" empty state; RTL + MSW tests; backlog BKL-01 for drafts whose category was deactivated; `docs/integration-testing.md`.

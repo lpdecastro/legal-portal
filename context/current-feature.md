@@ -1,30 +1,18 @@
-# Current Feature: CASE-02-02 Create Draft Form
+# Current Feature
 
-Ant Design form on the Create Draft page that saves a new legal case as a draft via `POST /api/v1/cases`.
+<!-- Feature name and short description -->
 
 ## Status
 
-In Progress
+<!-- Not Started / In Progress / Completed -->
 
 ## Goals
 
-- Authenticated clients can open the Create Draft page (`/cases/new`); unauthenticated clients are redirected to `/login`.
-- Form fields: Title (required, ≤200 chars), Legal Category (required, `LegalCategorySelect` from CASE-01-02), Description (optional), Location (optional, ≤255 chars).
-- Required and max-length validation runs before saving.
-- "Save Draft" calls `POST /api/v1/cases` with the form values.
-- Save button is disabled and shows a loading indicator while saving; duplicate submits are prevented.
-- On 201, show a success message and navigate to the created case's details page (`caseDetailsPath(id)`).
-- API `fieldErrors` (e.g. `VALIDATION_ERROR` on `categoryId`) are shown under the matching fields.
-- Other API failures show an error message without clearing the form.
-- Tests: fields render, categories load, required and max-length validation, successful create + navigation, loading prevents duplicates, API field errors shown, API failure preserves values.
+<!-- Goals and requirements -->
 
 ## Notes
 
-- Type: FE. Story: CASE-02 – Create Draft Case. Spec: `context/epics/03-case-submission/stories/CASE-02-create-draft/tasks/CASE-02-02-create-draft-form.md`.
-- Depends on CASE-01-02 (`LegalCategorySelect`, `useLegalCategories`), CASE-02-01 (API: body `{ title, categoryId, description, location }`, 201 `CaseResponse` `{ id, title, categoryId, description, location, status, createdAt, updatedAt }`), and AUTH-03-02 (`RequireAuth`).
-- Existing placeholder `pages/CreateCasePage.tsx`; paths `paths.createCase`, `caseDetailsPath()` in `routes/paths.ts`.
-- Reuse `postJson`/`ApiError` from `api/client.ts` and follow the Register/Login form patterns (field errors, alert, disabled while submitting).
-- Case details page is still a placeholder; navigation only needs to land on it.
+<!-- Any extra notes -->
 
 ## History
 
@@ -47,3 +35,4 @@ In Progress
 - **CASE-01-01: List Legal Categories API** (2026-10-17) — Authenticated `GET /api/v1/legal-categories` (`LegalCategoryController` → `LegalCategoryService`) returns active categories as `{ id, name, description }` (`LegalCategoryResponse`) sorted by name, `[]` when none are active, 401 `UNAUTHORIZED` Problem Details without a session; Flyway `V3__create_legal_categories.sql` creates `legal_categories` (unique name, `is_active`) and seeds six active categories; `LegalCategoryRepository.findByActiveTrueOrderByNameAsc` reusable for the inactive-category check on cases; catch-all `ApiExceptionHandler.handleUnexpected` returns 500 `INTERNAL_ERROR` Problem Details (cause logged under the `traceId`) and rethrows Spring MVC (`ErrorResponse`) and Spring Security exceptions; entities now generate UUID v7 IDs (`@UuidGenerator(style = VERSION_7)`, new coding standard; SQL-seeded rows stay v4 via `gen_random_uuid()`); `99-backlog` epic added; `LegalCategoryIntegrationTest` (rolled-back transactions), `LegalCategorySeedTest`, `ApiExceptionHandlerTest`.
 - **CASE-01-02: Legal Category Dropdown** (2026-10-17) — Reusable `LegalCategorySelect` (antd `Select`, works as a `Form.Item` control, value = category ID) for the Create/Edit Draft forms; `useLegalCategories` loads `GET /api/v1/legal-categories` via `fetchLegalCategories()` (`api/legalCategories.ts`) and sorts by name; loading state (disabled, "Loading categories…", preselected raw ID hidden), error `Alert` with Retry, "No legal categories available" empty state; RTL + MSW tests; backlog BKL-01 for drafts whose category was deactivated; `docs/integration-testing.md`.
 - **CASE-02-01: Create Draft API** (2026-10-17) — Authenticated, CSRF-protected `POST /api/v1/cases` (`CaseController` → `CaseService`) creates a `DRAFT` `LegalCase` (`case` is a Java keyword; package `cases`) owned by the session's client profile, ignoring any `clientId`/`status` in the body; `title` required ≤200, `categoryId` required and active (`LegalCategoryRepository.findByIdAndActiveTrue`), `description` optional, `location` optional ≤255; title/location trimmed, blank optional fields stored as null; 201 returns `{ id, title, categoryId, description, location, status, createdAt, updatedAt }` (`CaseResponse`) with `Location: /api/v1/cases/{id}`; unknown/inactive categories get the same 400 `VALIDATION_ERROR` `categoryId` field error via new `FieldValidationException` (business-rule field errors share `ApiExceptionHandler.validationProblem`); suspended/disabled/deleted accounts get 401; timestamps set in `@PrePersist`/`@PreUpdate` from one clock read truncated to micros (equal on create, match the DB); Flyway `V4__create_cases.sql` (status check, `client_id`/`category_id` indexes); `CreateCaseIntegrationTest`; `LegalCategoryIntegrationTest` clears cases before categories.
+- **CASE-02-02: Create Draft Form** (2026-10-17) — Ant Design Create Draft form on `/cases/new` (`CreateCasePage`): title (required, whitespace-only rejected, ≤200), legal category (required, `LegalCategorySelect`), optional description, optional location (≤255); title/location show non-blocking character counters; Save Draft posts via `createCase()` (`api/cases.ts`, `LegalCase`/`CaseStatus` types) and `useCreateCase`, trimming title/location and omitting empty optional fields; form disabled and button loading while saving, plus a ref guard against duplicate submits; 201 shows "Draft saved." and navigates to `caseDetailsPath(id)`; API `fieldErrors` mapped onto fields, other errors in an alert with values kept; `CreateCasePage` RTL + MSW tests; `RequireAuth` tests updated (heading, categories mock, `/cases/new` redirect).

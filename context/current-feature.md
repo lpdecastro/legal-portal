@@ -1,27 +1,18 @@
-# Current Feature: AUTH-04-01 Logout API
+# Current Feature
 
-Allow authenticated clients to securely log out through the Spring Boot API.
+<!-- Feature name and short description -->
 
 ## Status
 
-In Progress
+<!-- Not Started / In Progress / Completed -->
 
 ## Goals
 
-- Implement `POST /api/v1/auth/logout` (no request body).
-- Invalidate the server-side session using Spring Security (Spring Session JDBC row removed).
-- Clear the session cookie: `Set-Cookie: SESSION=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=Lax`.
-- Successful logout returns HTTP 204 with no body.
-- Require a valid CSRF token (`X-XSRF-TOKEN`); missing/invalid token returns 403 `FORBIDDEN` Problem Details ("Invalid or missing CSRF token.", `application/problem+json`).
-- Reusing the invalidated session returns HTTP 401 on protected APIs (e.g. `GET /api/v1/auth/me`).
-- Add automated tests; all tests pass.
+<!-- Goals and requirements -->
 
 ## Notes
 
-- Type: Backend only. Spec: `context/epics/02-authentication/stories/AUTH-04-logout/tasks/AUTH-04-01-logout-api.md`.
-- Out of scope: logout UI (AUTH-04-02), login/session creation, session restoration, protected frontend routes.
-- Builds on AUTH-00-01 (CSRF + Spring Session JDBC), AUTH-02-01 (`SessionLogin`), AUTH-03-01 (`GET /auth/me`, `SessionLogin.end`).
-- Error responses follow RFC 9457 Problem Details with `errorCode`, `timestamp`, `traceId`.
+<!-- Any extra notes -->
 
 ## History
 
@@ -39,3 +30,4 @@ In Progress
 - **AUTH-02-02: Login Form** (2026-10-16) — Ant Design form on `/login` (email, password) with required/email-format validation; `login()` posts to `POST /api/v1/auth/login` via `api/client.ts` (CSRF token fetched first, sent in `X-XSRF-TOKEN`); signed-in client kept in React state via `AuthProvider`/`AuthContext` and `useAuth`, set by `useLogin`; every 401 shows the generic "Invalid email or password." alert, API `fieldErrors` go under fields, other errors (e.g. 429) in an alert; form disabled/loading while submitting; success redirects to `/dashboard`; `renderWithProviders` wraps `AuthProvider`; RTL + MSW tests. User state is lost on refresh until session restoration (`GET /auth/me`) lands.
 - **AUTH-03-01: Session Restoration** (2026-10-16) — `GET /api/v1/auth/me` returns 200 `{ id, email, firstName, lastName }` (`AuthenticatedClientResponse`, shared with login) for an authenticated session, reloading user and profile from the database; missing, unknown, anonymous or expired sessions get 401 `UNAUTHORIZED` "Authentication required." from the security entry point; accounts deleted, suspended or disabled after login have their session ended (`SessionLogin.end`) and get the same 401; `AuthProvider` restores the client via `fetchCurrentUser()` on start-up behind a full-screen `Spin`, any failure leaves them signed out; profile menu shows the client's name; `renderWithProviders` takes a `user` option that skips the check; `CurrentClientIntegrationTest`, `AuthProvider`/`ProfileMenu` tests; flow in `docs/session-restoration.md`.
 - **AUTH-03-02: Protected Routes** (2026-10-17) — `RequireAuth` layout route wraps `AuthenticatedLayout` and redirects signed-out clients to `/login` (replace); relies on `AuthProvider` holding rendering behind its `Spin` until the `GET /auth/me` check settles, so valid sessions survive refresh and protected pages never flash; `api/client.ts` exposes `onUnauthorized` and `AuthProvider` signs the client out on any 401, so sessions that expire mid-use also land on `/login`; routes exported as `routes` for tests; `RequireAuth` tests; flow in `docs/protected-routes.md`.
+- **AUTH-04-01: Logout API** (2026-10-17) — Authenticated, CSRF-protected `POST /api/v1/auth/logout` (`LogoutController`) ends the session via `SessionLogin.end` (`SecurityContextLogoutHandler`); Spring Session deletes the `SPRING_SESSION` row and expires the cookie (`SESSION=; Max-Age=0; Path=/; Secure; HttpOnly; SameSite=Lax`); returns 204 with no body; missing/invalid/pre-login CSRF token gets 403 `FORBIDDEN` with the session kept; anonymous sessions and reuse of the logged-out session get 401 `UNAUTHORIZED`; Spring Security's default `/logout` filter stays disabled; `LogoutIntegrationTest` plus a real-server cleared-cookie check in `SessionCookieTest`; flow in `docs/session-logout.md`.

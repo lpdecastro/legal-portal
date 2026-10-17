@@ -1,18 +1,29 @@
-# Current Feature
+# Current Feature: CASE-01-02 Legal Category Dropdown
 
-<!-- Feature name and short description -->
+Reusable Ant Design legal category dropdown for the Create/Edit Draft forms (FE).
 
 ## Status
 
-<!-- Not Started / In Progress / Completed -->
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- Reusable dropdown component loads categories from `GET /api/v1/legal-categories`
+- Categories displayed alphabetically by name
+- Client can select one category; selected value is reflected in the form (works as an antd `Form.Item` control)
+- Existing category is preselected when editing a draft
+- Loading state while fetching
+- Appropriate error message on API failure, with a way to retry
+- Empty state when no categories are available
+- RTL + MSW tests: categories shown, selection updates form value, preselection, loading, error + retry, empty state
 
 ## Notes
 
-<!-- Any extra notes -->
+- Story: CASE-01 – Legal Categories; depends on CASE-01-01 (API returns active categories `{ id, name, description }` sorted by name, `[]` when none, 401 without a session).
+- Type: FE only. Create/Edit Draft forms don't exist yet — build the component standalone for them to consume.
+- Use `api/client.ts` for the GET and the existing 401 handling (`onUnauthorized`); no `any`; reusable logic in a custom hook per coding standards.
+- Tests: `renderWithProviders` + `server.use(...)`; unhandled requests fail.
+- Definition of Done: component implemented, all acceptance criteria met, frontend tests pass.
 
 ## History
 

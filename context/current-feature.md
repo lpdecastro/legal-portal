@@ -1,28 +1,18 @@
-# Current Feature: CASE-03-01 Get Case Details API
+# Current Feature
 
-Authenticated `GET /api/v1/cases/{id}` returning one of the current client's non-deleted cases, for the Edit Draft form and Case Details page.
+<!-- Feature name and short description -->
 
 ## Status
 
-In Progress
+<!-- Not Started / In Progress / Completed -->
 
 ## Goals
 
-- Authenticated `GET /api/v1/cases/{id}` (no CSRF, read-only) returns 200 with `{ id, title, categoryId, description, location, status, createdAt, updatedAt }`.
-- Works for `DRAFT`, `SUBMITTED`, and `CLOSED` cases.
-- Only returns cases owned by the session's client profile; another client's, soft-deleted (`deleted_at` set), or nonexistent cases return 404 `CASE_NOT_FOUND` (indistinguishable).
-- Invalid UUID path value returns 400 `VALIDATION_ERROR` Problem Details.
-- Unauthenticated requests return 401 `UNAUTHORIZED`.
-- All errors are RFC 9457 Problem Details with `errorCode`, `timestamp`, `traceId`.
-- Tests: own draft, submitted and closed retrievable; other client's, soft-deleted, nonexistent → 404; invalid UUID → 400; unauthenticated → 401; response fields match.
+<!-- Goals and requirements -->
 
 ## Notes
 
-- Type: BE. Story: CASE-03 – Edit Draft Case. Spec: `context/epics/03-case-submission/stories/CASE-03-edit-draft/tasks/CASE-03-01-get-case-details-api.md`.
-- Depends on CASE-02-01: reuse `CaseController`, `CaseService`, `CaseResponse`, `LegalCase` (`deletedAt` column exists), `LegalCaseRepository` (no finders yet; add an owner + `deletedAt IS NULL` lookup so ownership is enforced in the query).
-- Suspended/disabled/deleted accounts get 401, as in Create Draft.
-- `ApiExceptionHandler.handleUnexpected` would turn a `MethodArgumentTypeMismatchException` into a 500 or a non-standard Spring 400; add an explicit handler for the invalid-UUID case.
-- Follow `CreateCaseIntegrationTest` patterns (Testcontainers, rolled-back transactions); insert submitted/closed/deleted rows directly since those transitions don't exist yet.
+<!-- Any extra notes -->
 
 ## History
 
@@ -46,3 +36,4 @@ In Progress
 - **CASE-01-02: Legal Category Dropdown** (2026-10-17) — Reusable `LegalCategorySelect` (antd `Select`, works as a `Form.Item` control, value = category ID) for the Create/Edit Draft forms; `useLegalCategories` loads `GET /api/v1/legal-categories` via `fetchLegalCategories()` (`api/legalCategories.ts`) and sorts by name; loading state (disabled, "Loading categories…", preselected raw ID hidden), error `Alert` with Retry, "No legal categories available" empty state; RTL + MSW tests; backlog BKL-01 for drafts whose category was deactivated; `docs/integration-testing.md`.
 - **CASE-02-01: Create Draft API** (2026-10-17) — Authenticated, CSRF-protected `POST /api/v1/cases` (`CaseController` → `CaseService`) creates a `DRAFT` `LegalCase` (`case` is a Java keyword; package `cases`) owned by the session's client profile, ignoring any `clientId`/`status` in the body; `title` required ≤200, `categoryId` required and active (`LegalCategoryRepository.findByIdAndActiveTrue`), `description` optional, `location` optional ≤255; title/location trimmed, blank optional fields stored as null; 201 returns `{ id, title, categoryId, description, location, status, createdAt, updatedAt }` (`CaseResponse`) with `Location: /api/v1/cases/{id}`; unknown/inactive categories get the same 400 `VALIDATION_ERROR` `categoryId` field error via new `FieldValidationException` (business-rule field errors share `ApiExceptionHandler.validationProblem`); suspended/disabled/deleted accounts get 401; timestamps set in `@PrePersist`/`@PreUpdate` from one clock read truncated to micros (equal on create, match the DB); Flyway `V4__create_cases.sql` (status check, `client_id`/`category_id` indexes); `CreateCaseIntegrationTest`; `LegalCategoryIntegrationTest` clears cases before categories.
 - **CASE-02-02: Create Draft Form** (2026-10-17) — Ant Design Create Draft form on `/cases/new` (`CreateCasePage`): title (required, whitespace-only rejected, ≤200), legal category (required, `LegalCategorySelect`), optional description, optional location (≤255); title/location show non-blocking character counters; Save Draft posts via `createCase()` (`api/cases.ts`, `LegalCase`/`CaseStatus` types) and `useCreateCase`, trimming title/location and omitting empty optional fields; form disabled and button loading while saving, plus a ref guard against duplicate submits; 201 shows "Draft saved." and navigates to `caseDetailsPath(id)`; API `fieldErrors` mapped onto fields, other errors in an alert with values kept; `CreateCasePage` RTL + MSW tests; `RequireAuth` tests updated (heading, categories mock, `/cases/new` redirect).
+- **CASE-03-01: Get Case Details API** (2026-10-17) — Authenticated `GET /api/v1/cases/{id}` (`CaseController.get` → `CaseService.getCase`, read-only transaction) returns the session's client's case as `CaseResponse` `{ id, title, categoryId, description, location, status, createdAt, updatedAt }` in any status; ownership and soft deletion enforced in the query (`LegalCaseRepository.findByIdAndClientIdAndDeletedAtIsNull`), so another client's, deleted and nonexistent cases get the same 404 `CASE_NOT_FOUND` "Case not found." (`CaseNotFoundException`); non-UUID IDs get 400 `VALIDATION_ERROR` "Parameter 'id' has an invalid value." via a new `MethodArgumentTypeMismatchException` handler in `ApiExceptionHandler`; unauthenticated requests and suspended/disabled/deleted accounts get 401; `GetCaseIntegrationTest` (submitted/closed/deleted rows inserted via SQL).

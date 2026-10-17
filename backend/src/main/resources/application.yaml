@@ -34,11 +34,23 @@ server:
         secure: true
         same-site: lax
 app:
+  openapi:
+    title: Legal Portal API
+    version: v1
   security:
     login-rate-limit:
       max-failures-per-email: 5
       max-failures-per-ip: 50
       window: 15m
+springdoc:
+  api-docs:
+    # GET /v3/api-docs; turn off where the API shouldn't be described publicly
+    enabled: ${OPENAPI_ENABLED:true}
+scalar:
+  # GET /scalar (reads /v3/api-docs, so it needs OpenAPI enabled too)
+  enabled: ${SCALAR_ENABLED:true}
+  # Empty inline icon: the default favicon.svg (and the browser's /favicon.ico fallback) don't exist and get 401
+  favicon: "data:,"
 management:
   endpoints:
     web:

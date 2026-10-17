@@ -32,6 +32,8 @@ cd backend
 ./mvnw spring-boot:run
 ```
 
+API docs: http://localhost:8080/scalar
+
 #### IntelliJ IDEA gotchas
 
 - **Maven fails to run or import:** go to **Settings → Build, Execution, Deployment → Build Tools → Maven** and set **Maven home path** to **Bundled (Maven 3)**.

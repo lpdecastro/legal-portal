@@ -42,6 +42,9 @@ public class SecurityConfig {
                 // Public, but still CSRF-protected like every other state-changing request
                 .requestMatchers(HttpMethod.POST, "/api/v1/auth/register", "/api/v1/auth/login").permitAll()
                 .requestMatchers(HttpMethod.GET, "/actuator/health", "/actuator/health/**").permitAll()
+                // API docs; not served when turned off with OPENAPI_ENABLED / SCALAR_ENABLED (then 401 like any unknown path)
+                .requestMatchers(HttpMethod.GET, "/v3/api-docs", "/v3/api-docs/**", "/scalar", "/scalar/**")
+                .permitAll()
                 .anyRequest().authenticated())
             .exceptionHandling((exceptions) -> exceptions
                 .authenticationEntryPoint(authenticationEntryPoint)

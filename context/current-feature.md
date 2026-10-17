@@ -1,18 +1,25 @@
-# Current Feature
+# Current Feature: FND-08: OpenAPI and Scalar Setup
 
-<!-- Feature name and short description -->
+Set up API documentation in `backend/` using Springdoc OpenAPI and Scalar.
 
 ## Status
 
-<!-- Not Started / In Progress / Completed -->
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- Add Springdoc OpenAPI with Scalar.
+- Configure API title and version.
+- Configure `OPENAPI_ENABLED` and `SCALAR_ENABLED` in `application.yaml` from environment variables.
+- `/scalar` loads the API documentation UI locally.
+- `/v3/api-docs` returns valid OpenAPI JSON with the configured title and version.
+- Setting both environment variables to `false` disables the documentation endpoints after a backend restart.
 
 ## Notes
 
-<!-- Any extra notes -->
+- Spec: `context/epics/01-foundation/tasks/FND-08-openapi-and-scalar-setup.md`.
+- Out of scope: business APIs, Postman collections.
+- Docs endpoints must be reachable through Spring Security (currently all non-public endpoints require auth).
 
 ## History
 

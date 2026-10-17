@@ -1,6 +1,9 @@
-# CM-06-01: Paginate Cases API
+# CASE-09-01: Paginate Cases API
 
-## Goal
+**Type:** BE  
+**Story:** CASE-09 – Paginate Cases
+
+## Description
 
 Allow authenticated clients to retrieve their cases with server-side pagination.
 
@@ -8,14 +11,10 @@ Allow authenticated clients to retrieve their cases with server-side pagination.
 
 **GET** `/api/v1/cases?page=0&size=10`
 
-**Combined:** `GET /api/v1/cases?search=property&status=SUBMITTED&page=0&size=10`
-
 **Query Parameters**
 
 - `page` — Zero-based page index (default: `0`).
 - `size` — Number of cases per page (default: `10`, max: `100`).
-- `search` — Optional case title search.
-- `status` — Optional case status filter.
 
 **Response: 200 OK**
 
@@ -47,22 +46,20 @@ Allow authenticated clients to retrieve their cases with server-side pagination.
 
 ## Acceptance Criteria
 
-- Return only the requested page of the authenticated client's cases.
-- Use zero-based page indexing.
-- Apply search and status filters before pagination.
-- Sort by creation date descending by default, with a stable secondary sort by ID.
-- Return pagination metadata.
-- Enforce a maximum page size of `100`.
-- Return an empty `content` array for pages beyond the last page.
-- Reject negative page numbers and invalid page sizes.
-- Exclude soft-deleted cases.
-- Follow the standard API error response format.
+1. Return only the requested page of the authenticated client's cases.
+2. Use zero-based page indexing.
+3. Sort by creation date descending by default, with a stable secondary sort by ID.
+4. Return pagination metadata.
+5. Enforce a maximum page size of `100`.
+6. Return an empty `content` array for pages beyond the last page.
+7. Reject negative page numbers and invalid page sizes.
+8. Exclude soft-deleted cases.
+9. Follow the standard API error response format.
 
 ## Testing
 
 - Client can retrieve different pages of cases.
-- Pagination metadata reflects the filtered results.
-- Search and status filters work with pagination.
+- Pagination metadata is correct.
 - Cases appear in a consistent order across pages.
 - Out-of-range pages return an empty list.
 - Invalid pagination parameters return `400`.
@@ -71,6 +68,10 @@ Allow authenticated clients to retrieve their cases with server-side pagination.
 
 ## Dependencies
 
-- CM-01-01: List My Cases API
-- CM-04-01: Search Cases API
-- CM-05-01: Filter Cases API
+- CASE-03-01 – List My Cases API.
+- Authentication and session management.
+
+## Definition of Done
+
+- All acceptance criteria are met.
+- Automated BE tests pass.

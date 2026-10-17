@@ -1,6 +1,9 @@
-# CM-01-02: My Cases Page
+# CASE-03-02: My Cases Page
 
-## Goal
+**Type:** FE  
+**Story:** CASE-03 – View My Cases
+
+## Description
 
 Allow clients to view their cases in a table.
 
@@ -10,13 +13,13 @@ Allow clients to view their cases in a table.
 
 ## Acceptance Criteria
 
-- Fetch cases using `GET /api/v1/cases`.
-- Display case title, category, status, and creation date.
-- Clicking a case navigates to `/cases/:id`.
-- Show an empty state when no cases exist.
-- Show a loading indicator while fetching cases.
-- Show an error message with a retry option when fetching fails.
-- Support desktop and mobile layouts.
+1. Fetch cases using `GET /api/v1/cases`.
+2. Display case title, category, status, and creation date.
+3. Clicking a case navigates to `/cases/:id`.
+4. Show an empty state when no cases exist.
+5. Show a loading indicator while fetching cases.
+6. Show an error message with a retry option when fetching fails.
+7. Support desktop and mobile layouts.
 
 ## Testing
 
@@ -24,3 +27,12 @@ Allow clients to view their cases in a table.
 - Clicking a case opens its details page.
 - Empty, loading, and error states display correctly.
 - Retry reloads the cases after an error.
+
+## Dependencies
+
+- Authentication and protected routes.
+
+## Definition of Done
+
+- All acceptance criteria are met.
+- Automated FE tests pass.

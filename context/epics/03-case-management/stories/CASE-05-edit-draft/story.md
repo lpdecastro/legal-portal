@@ -1,4 +1,4 @@
-# CASE-03: Edit Draft Case
+# CASE-05: Edit Draft Case
 
 ## User Story
 
@@ -21,15 +21,15 @@ As a client, I want to view and edit an existing draft case, so that I can updat
 
 | ID         | Task                 | Type |
 | ---------- | -------------------- | ---- |
-| CASE-03-01 | Get Case Details API | BE   |
-| CASE-03-02 | Update Draft API     | BE   |
-| CASE-03-03 | Edit Draft Form      | FE   |
+| CASE-05-01 | Update Draft API     | BE   |
+| CASE-05-02 | Edit Draft Form      | FE   |
 
 ## Dependencies
 
 - Authenticated client session.
 - CASE-01 – Legal Categories.
 - CASE-02 – Create Draft Case.
+- CASE-04 – View Case Details.
 
 ## Definition of Done
 

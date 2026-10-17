@@ -1,7 +1,7 @@
-# CASE-04-01: Delete Draft API
+# CASE-06-01: Delete Draft API
 
 **Type:** BE  
-**Story:** CASE-04 – Delete Draft Case
+**Story:** CASE-06 – Delete Draft Case
 
 ## Description
 
@@ -66,7 +66,7 @@ Errors follow RFC 9457 Problem Details.
 ## Dependencies
 
 - CASE-02-01 – Create Draft API.
-- CASE-03-01 – Get Case Details API.
+- CASE-04-01 – Get Case Details API.
 - Authentication and CSRF protection.
 
 ## Definition of Done

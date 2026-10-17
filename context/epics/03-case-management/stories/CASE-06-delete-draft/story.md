@@ -1,4 +1,4 @@
-# CASE-04: Delete Draft Case
+# CASE-06: Delete Draft Case
 
 ## User Story
 
@@ -20,14 +20,14 @@ As a client, I want to delete an existing draft case, so that I can remove cases
 
 | ID         | Task             | Type |
 | ---------- | ---------------- | ---- |
-| CASE-04-01 | Delete Draft API | BE   |
-| CASE-04-02 | Delete Draft UI  | FE   |
+| CASE-06-01 | Delete Draft API | BE   |
+| CASE-06-02 | Delete Draft UI  | FE   |
 
 ## Dependencies
 
 - Authenticated client session.
 - CASE-02 – Create Draft Case.
-- CASE-03-01 – Get Case Details API.
+- CASE-04 – View Case Details.
 
 ## Definition of Done
 

@@ -1,6 +1,9 @@
-# CM-01-01: List My Cases API
+# CASE-03-01: List My Cases API
 
-## Goal
+**Type:** BE  
+**Story:** CASE-03 – View My Cases
+
+## Description
 
 Allow authenticated clients to retrieve their own cases.
 
@@ -31,11 +34,11 @@ Allow authenticated clients to retrieve their own cases.
 
 ## Acceptance Criteria
 
-- Return only cases belonging to the authenticated client.
-- Exclude soft-deleted cases.
-- Return an empty list when no cases exist.
-- Never expose another client's cases.
-- Follow the standard API error response format.
+1. Return only cases belonging to the authenticated client.
+2. Exclude soft-deleted cases.
+3. Return an empty list when no cases exist.
+4. Never expose another client's cases.
+5. Follow the standard API error response format.
 
 ## Testing
 
@@ -43,3 +46,12 @@ Allow authenticated clients to retrieve their own cases.
 - Client cannot see another client's cases.
 - Soft-deleted cases are excluded.
 - Unauthenticated requests return `401`.
+
+## Dependencies
+
+- Authentication and session management.
+
+## Definition of Done
+
+- All acceptance criteria are met.
+- Automated BE tests pass.

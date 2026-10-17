@@ -1,4 +1,4 @@
-# CASE-05: Submit Case
+# CASE-07: Submit Case
 
 ## User Story
 
@@ -22,15 +22,16 @@ As a client, I want to submit my draft case, so that it can be finalized for leg
 
 | ID         | Task            | Type |
 | ---------- | --------------- | ---- |
-| CASE-05-01 | Submit Case API | BE   |
-| CASE-05-02 | Submit Case UI  | FE   |
+| CASE-07-01 | Submit Case API | BE   |
+| CASE-07-02 | Submit Case UI  | FE   |
 
 ## Dependencies
 
 - Authenticated client session.
 - CASE-01 – Legal Categories.
 - CASE-02 – Create Draft Case.
-- CASE-03 – Edit Draft Case.
+- CASE-04 – View Case Details.
+- CASE-05 – Edit Draft Case.
 
 ## Definition of Done
 

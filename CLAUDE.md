@@ -11,7 +11,7 @@ The repo is at an early scaffold stage — `frontend/` is the stock Vite templat
 - `context/project-overview.md` — business rules, data model, API design, auth model, error format, testing and infra plans. Read this before implementing anything.
 - `context/coding-standards.md` — TypeScript/React rules.
 - `context/ai-interaction.md` — the per-feature workflow.
-- `context/epics/NN-<epic>/` — `epic.md`, then `stories/<ID>/story.md` and `tasks/<ID>.md` specs (e.g. `FND-02-backend-setup.md`, `CASE-02-...`). Epic order: Foundation → Authentication → Case Submission → Case Management → Client Dashboard → Profile & Settings.
+- `context/epics/NN-<epic>/` — `epic.md`, then `stories/<ID>/story.md` and `tasks/<ID>.md` specs (e.g. `FND-02-backend-setup.md`, `CASE-02-...`). Epic order: Foundation → Authentication → Case Management → Client Dashboard → Profile & Settings.
 - `context/current-feature.md` — the active feature (goals, notes, append-only History).
 
 ## Feature workflow

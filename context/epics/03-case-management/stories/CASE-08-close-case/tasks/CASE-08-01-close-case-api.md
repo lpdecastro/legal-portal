@@ -1,6 +1,9 @@
-# CM-03-01: Close Case API
+# CASE-08-01: Close Case API
 
-## Goal
+**Type:** BE  
+**Story:** CASE-08 – Close Case
+
+## Description
 
 Allow authenticated clients to close their own submitted cases.
 
@@ -27,11 +30,11 @@ Allow authenticated clients to close their own submitted cases.
 
 ## Acceptance Criteria
 
-- Only the case owner can close the case.
-- Only `SUBMITTED` cases can be closed.
-- Update status to `CLOSED` and set `closedAt`.
-- Reject closing `DRAFT` or `CLOSED` cases.
-- Follow the standard API error response format.
+1. Only the case owner can close the case.
+2. Only `SUBMITTED` cases can be closed.
+3. Update status to `CLOSED` and set `closedAt`.
+4. Reject closing `DRAFT` or `CLOSED` cases.
+5. Follow the standard API error response format.
 
 ## Testing
 
@@ -40,3 +43,12 @@ Allow authenticated clients to close their own submitted cases.
 - Closing a draft or closed case returns `409`.
 - Closing another client's case returns `404`.
 - Unauthenticated requests return `401`.
+
+## Dependencies
+
+- Authentication and CSRF protection.
+
+## Definition of Done
+
+- All acceptance criteria are met.
+- Automated BE tests pass.

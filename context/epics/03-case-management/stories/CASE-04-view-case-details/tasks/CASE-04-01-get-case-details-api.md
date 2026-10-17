@@ -1,7 +1,7 @@
-# CASE-03-01: Get Case Details API
+# CASE-04-01: Get Case Details API
 
 **Type:** BE  
-**Story:** CASE-03 – Edit Draft Case
+**Story:** CASE-04 – View Case Details
 
 ## Description
 

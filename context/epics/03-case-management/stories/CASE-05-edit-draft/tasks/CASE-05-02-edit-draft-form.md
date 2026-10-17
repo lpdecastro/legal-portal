@@ -1,7 +1,7 @@
-# CASE-03-03: Edit Draft Form
+# CASE-05-02: Edit Draft Form
 
 **Type:** FE  
-**Story:** CASE-03 – Edit Draft Case
+**Story:** CASE-05 – Edit Draft Case
 
 ## Description
 
@@ -51,8 +51,8 @@ Reuse the Create Draft form component where possible.
 ## Dependencies
 
 - CASE-01-02 – Legal Category Dropdown.
-- CASE-03-01 – Get Case Details API.
-- CASE-03-02 – Update Draft API.
+- CASE-04-01 – Get Case Details API.
+- CASE-05-01 – Update Draft API.
 - CASE-02-02 – Create Draft Form.
 - Authentication and protected routes.
 

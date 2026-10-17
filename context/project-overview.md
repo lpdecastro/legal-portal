@@ -69,7 +69,7 @@ and manages their own legal cases.
 - dashboard
 - my cases
 - case details
-- submit a case
+- create case
 - profile & settings
 
 ## Routes
@@ -129,7 +129,7 @@ Pages:
 - Dashboard: statistics and recent cases
 - My Cases: searchable, filterable, paginated table
 - Case Details: case information and available actions
-- Submit Case: validated case submission form
+- Create Case: draft case form (submitted from Case Details)
 - Profile & Settings: personal and security settings
 
 UI States:
@@ -419,26 +419,23 @@ Configuration:
    - Session management
    - Protected routes
 
-3. Case Submission
+3. Case Management
    - Legal categories
-   - Create and edit draft
-   - Submit case
-
-4. Case Management
-   - My Cases
-   - Case Details
+   - Create draft
+   - My Cases, Case Details
+   - Edit, delete, submit draft
    - Close case
-   - Search, filtering, pagination
+   - Pagination, filtering, search
 
-5. Dashboard
+4. Client Dashboard
    - Case statistics
    - Recent cases
 
-6. Profile & Settings
+5. Profile & Settings
    - View/edit profile
    - Change password
 
-7. Production Deployment
+6. Production Deployment
    - AWS infrastructure
    - CI/CD deployment
    - Monitoring and security verification

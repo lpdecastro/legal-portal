@@ -1,4 +1,4 @@
-# CM-01: View My Cases
+# CASE-03: View My Cases
 
 ## User Story
 
@@ -10,13 +10,24 @@ My Cases (`/cases`)
 
 ## Acceptance Criteria
 
-- Display only cases belonging to the logged-in client.
-- Show case title, category, status, and creation date.
-- Clicking a case opens its details page.
-- Show an empty state when no cases exist.
-- Show loading and error states.
+1. Display only cases belonging to the logged-in client.
+2. Show case title, category, status, and creation date.
+3. Clicking a case opens its details page.
+4. Show an empty state when no cases exist.
+5. Show loading and error states.
 
 ## Tasks
 
-- CM-01-01: List My Cases API
-- CM-01-02: My Cases Page
+| ID         | Task              | Type |
+| ---------- | ----------------- | ---- |
+| CASE-03-01 | List My Cases API | BE   |
+| CASE-03-02 | My Cases Page     | FE   |
+
+## Dependencies
+
+- Authenticated client session.
+
+## Definition of Done
+
+- All acceptance criteria are met.
+- Automated BE and FE tests pass.

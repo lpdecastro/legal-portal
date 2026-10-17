@@ -1,4 +1,4 @@
-# CM-06: Paginate Cases
+# CASE-09: Paginate Cases
 
 ## User Story
 
@@ -10,22 +10,27 @@ My Cases (`/cases`)
 
 ## Acceptance Criteria
 
-- Display cases with server-side pagination.
-- Allow clients to navigate between pages.
-- Show current page, total pages, and total cases.
-- Allow clients to change the page size.
-- Preserve search and status filters when navigating pages.
-- Reset to the first page when search, filter, or page size changes.
-- Show an empty state when no cases exist.
-- Show loading and error states.
+1. Display cases with server-side pagination.
+2. Allow clients to navigate between pages.
+3. Show current page, total pages, and total cases.
+4. Allow clients to change the page size.
+5. Reset to the first page when page size changes.
+6. Show an empty state when no cases exist.
+7. Show loading and error states.
 
 ## Tasks
 
-- CM-06-01: Paginate Cases API
-- CM-06-02: Pagination UI
+| ID         | Task               | Type |
+| ---------- | ------------------ | ---- |
+| CASE-09-01 | Paginate Cases API | BE   |
+| CASE-09-02 | Pagination UI      | FE   |
 
 ## Dependencies
 
-- CM-01: View My Cases
-- CM-04: Search Cases
-- CM-05: Filter Cases
+- Authenticated client session.
+- CASE-03 – View My Cases.
+
+## Definition of Done
+
+- All acceptance criteria are met.
+- Automated BE and FE tests pass.

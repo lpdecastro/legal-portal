@@ -1,7 +1,7 @@
-# CASE-05-01: Submit Case API
+# CASE-07-01: Submit Case API
 
 **Type:** BE  
-**Story:** CASE-05 – Submit Case
+**Story:** CASE-07 – Submit Case
 
 ## Description
 
@@ -92,7 +92,7 @@ Errors follow RFC 9457 Problem Details.
 ## Dependencies
 
 - CASE-02-01 – Create Draft API.
-- CASE-03-01 – Get Case Details API.
+- CASE-04-01 – Get Case Details API.
 - Authentication and CSRF protection.
 
 ## Definition of Done

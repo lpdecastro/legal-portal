@@ -1,4 +1,4 @@
-# CM-02: View Case Details
+# CASE-04: View Case Details
 
 ## User Story
 
@@ -10,16 +10,25 @@ Case Details (`/cases/:id`)
 
 ## Acceptance Criteria
 
-- Display case title, category, description, location, status, and dates.
-- Only allow clients to view their own cases.
-- Show available actions based on case status.
-- Show loading and error states.
-- Show a not-found message for missing or inaccessible cases.
+1. Display case title, category, description, location, status, and dates.
+2. Only allow clients to view their own cases.
+3. Show available actions based on case status.
+4. Show loading and error states.
+5. Show a not-found message for missing or inaccessible cases.
 
 ## Tasks
 
-- CM-02-01: Case Details Page
+| ID         | Task                 | Type |
+| ---------- | -------------------- | ---- |
+| CASE-04-01 | Get Case Details API | BE   |
+| CASE-04-02 | Case Details Page    | FE   |
 
 ## Dependencies
 
-- CASE-03-01: Get Case Details API
+- Authenticated client session.
+- CASE-02 – Create Draft.
+
+## Definition of Done
+
+- All acceptance criteria are met.
+- Automated BE and FE tests pass.

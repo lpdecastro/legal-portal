@@ -1,6 +1,9 @@
-# CM-02-01: Case Details Page
+# CASE-04-02: Case Details Page
 
-## Goal
+**Type:** FE  
+**Story:** CASE-04 – View Case Details
+
+## Description
 
 Allow clients to view their case information and status.
 
@@ -10,16 +13,16 @@ Allow clients to view their case information and status.
 
 ## Acceptance Criteria
 
-- Fetch case details using `GET /api/v1/cases/:id`.
-- Display title, category, description, location, status, and relevant dates.
-- Show actions based on status:
-  - `DRAFT` — Edit, Delete, Submit
-  - `SUBMITTED` — Close
-  - `CLOSED` — No actions
-- Navigate to the edit page when clicking Edit.
-- Show loading and error states.
-- Show a not-found message for missing or inaccessible cases.
-- Support desktop and mobile layouts.
+1. Fetch case details using `GET /api/v1/cases/:id`.
+2. Display title, category, description, location, status, and relevant dates.
+3. Show actions based on status:
+   - `DRAFT` — Edit, Delete, Submit
+   - `SUBMITTED` — Close
+   - `CLOSED` — No actions
+4. Navigate to the edit page when clicking Edit.
+5. Show loading and error states.
+6. Show a not-found message for missing or inaccessible cases.
+7. Support desktop and mobile layouts.
 
 ## Testing
 
@@ -29,6 +32,12 @@ Allow clients to view their case information and status.
 - Missing or inaccessible cases show a not-found message.
 - Loading and error states display correctly.
 
-## Dependency
+## Dependencies
 
-- CASE-03-01: Get Case Details API
+- CASE-04-01 – Get Case Details API.
+- Authentication and protected routes.
+
+## Definition of Done
+
+- All acceptance criteria are met.
+- Automated FE tests pass.

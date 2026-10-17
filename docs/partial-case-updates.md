@@ -1,6 +1,6 @@
 # Partial Case Updates
 
-How `PATCH /api/v1/cases/{id}` treats fields that are left out of the body versus fields that are cleared. Written during CASE-03-02.
+How `PATCH /api/v1/cases/{id}` treats fields that are left out of the body versus fields that are cleared. Written during CASE-05-01.
 
 ## Left out vs cleared
 
@@ -33,7 +33,7 @@ Length limits and the active-category check apply only to fields that are sent.
 
 ## Edit Draft form
 
-Per CASE-03-03, Save Changes sends only the modified fields:
+Per CASE-05-02, Save Changes sends only the modified fields:
 
 - Unchanged fields are left out.
 - A field the user emptied is sent as `null` (or `""`) to clear it.

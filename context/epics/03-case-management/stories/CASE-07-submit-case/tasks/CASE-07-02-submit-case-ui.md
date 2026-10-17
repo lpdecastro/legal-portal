@@ -1,7 +1,7 @@
-# CASE-05-02: Submit Case UI
+# CASE-07-02: Submit Case UI
 
 **Type:** FE  
-**Story:** CASE-05 – Submit Case
+**Story:** CASE-07 – Submit Case
 
 ## Description
 
@@ -45,10 +45,10 @@ Implement a Submit Case action using React, TypeScript, and Ant Design, allowing
 
 ## Dependencies
 
-- CASE-05-01 – Submit Case API.
-- CASE-03-01 – Get Case Details API.
-- CASE-03-03 – Edit Draft Form.
-- Case Details page.
+- CASE-07-01 – Submit Case API.
+- CASE-04-01 – Get Case Details API.
+- CASE-05-02 – Edit Draft Form.
+- CASE-04-02 – Case Details Page.
 - Authentication and protected routes.
 
 ## Definition of Done

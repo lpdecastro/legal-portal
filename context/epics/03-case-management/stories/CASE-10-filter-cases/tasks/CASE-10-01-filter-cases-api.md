@@ -1,6 +1,9 @@
-# CM-05-01: Filter Cases API
+# CASE-10-01: Filter Cases API
 
-## Goal
+**Type:** BE  
+**Story:** CASE-10 – Filter Cases
+
+## Description
 
 Allow authenticated clients to filter their own cases by status.
 
@@ -8,7 +11,7 @@ Allow authenticated clients to filter their own cases by status.
 
 **GET** `/api/v1/cases?status=SUBMITTED`
 
-**Combined Search:** `GET /api/v1/cases?search=property&status=SUBMITTED`
+**Combined:** `GET /api/v1/cases?status=SUBMITTED&page=0&size=10`
 
 **Response: 200 OK**
 
@@ -34,26 +37,32 @@ Allow authenticated clients to filter their own cases by status.
 
 ## Acceptance Criteria
 
-- Filter by `DRAFT`, `SUBMITTED`, or `CLOSED`.
-- Combine status filtering with title search.
-- Return all statuses when `status` is omitted.
-- Return only cases belonging to the authenticated client.
-- Exclude soft-deleted cases.
-- Return an empty list when no cases match.
-- Reject invalid status values with `400`.
-- Follow the standard API error response format.
+1. Filter by `DRAFT`, `SUBMITTED`, or `CLOSED`.
+2. Apply the status filter before pagination; pagination metadata reflects the filtered results.
+3. Return all statuses when `status` is omitted.
+4. Return only cases belonging to the authenticated client.
+5. Exclude soft-deleted cases.
+6. Return an empty list when no cases match.
+7. Reject invalid status values with `400`.
+8. Follow the standard API error response format.
 
 ## Testing
 
 - Client can filter cases by each status.
-- Search and status filters work together.
+- Status filter works with pagination.
 - Omitting status returns cases of all statuses.
 - No matches return an empty list.
 - Invalid status returns `400`.
 - Other clients' cases are excluded.
 - Unauthenticated requests return `401`.
 
-## Dependency
+## Dependencies
 
-- CM-01-01: List My Cases API
-- CM-04-01: Search Cases API
+- CASE-03-01 – List My Cases API.
+- CASE-09-01 – Paginate Cases API.
+- Authentication and session management.
+
+## Definition of Done
+
+- All acceptance criteria are met.
+- Automated BE tests pass.

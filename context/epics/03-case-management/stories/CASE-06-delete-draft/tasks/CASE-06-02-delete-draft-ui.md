@@ -1,7 +1,7 @@
-# CASE-04-02: Delete Draft UI
+# CASE-06-02: Delete Draft UI
 
 **Type:** FE  
-**Story:** CASE-04 – Delete Draft Case
+**Story:** CASE-06 – Delete Draft Case
 
 ## Description
 
@@ -35,9 +35,9 @@ Implement a Delete Draft action using React, TypeScript, and Ant Design, allowin
 
 ## Dependencies
 
-- CASE-04-01 – Delete Draft API.
-- CASE-03-01 – Get Case Details API.
-- Case Details page.
+- CASE-06-01 – Delete Draft API.
+- CASE-04-01 – Get Case Details API.
+- CASE-04-02 – Case Details Page.
 - Authentication and protected routes.
 
 ## Definition of Done

@@ -1,37 +1,43 @@
-# Epic: Case Submission
+# Epic: Case Management
 
 **ID:** CASE  
-**Goal:** Allow authenticated clients to create, manage, and submit legal cases.
+**Goal:** Allow authenticated clients to create, view, manage, submit, and close their own legal cases.
 
-## Scope
+## Pages
 
-- Browse active legal categories through a dropdown.
-- Create a draft case.
-- View and edit an existing draft case.
-- Delete a draft case.
-- Submit a draft case.
+| Page         | Route             | Contents                                                    |
+| ------------ | ----------------- | ----------------------------------------------------------- |
+| My Cases     | `/cases`          | Case list, pagination, status filter, search.               |
+| Create Case  | `/cases/new`      | Case form, Save Draft button.                               |
+| Case Details | `/cases/:id`      | Case info; Edit, Delete, Submit (draft); Close (submitted). |
+| Edit Draft   | `/cases/:id/edit` | Case form, Save Changes button.                             |
 
 ## Business Rules
 
-- Only authenticated clients can create cases.
-- Each case belongs to one client.
-- Clients can only access their own cases.
+- Only authenticated clients can access cases.
+- Each case belongs to one client; clients can only access their own cases.
 - New cases have `DRAFT` status.
-- Draft cases can be edited or soft-deleted.
-- Submission requires title, category, description, and location.
+- Only drafts can be edited or soft-deleted.
 - Only active legal categories can be selected.
-- Submitted cases cannot be edited or deleted.
-- Submitted cases cannot be submitted again.
+- Submission requires title, category, description, and location.
+- Submitted cases cannot be edited, deleted, or submitted again.
+- Submitted cases can be closed; closed cases cannot be reopened.
 
 ## Stories
 
-| ID      | Story            | Description                                    |
-| ------- | ---------------- | ---------------------------------------------- |
-| CASE-01 | Legal Categories | Display active legal categories in a dropdown. |
-| CASE-02 | Create Draft     | Create a new case with DRAFT status.           |
-| CASE-03 | Edit Draft       | Load and update an existing draft case.        |
-| CASE-04 | Delete Draft     | Soft-delete an existing draft case.            |
-| CASE-05 | Submit Case      | Validate and submit a draft case.              |
+| ID      | Story             | Description                                    |
+| ------- | ----------------- | ---------------------------------------------- |
+| CASE-01 | Legal Categories  | Display active legal categories in a dropdown. |
+| CASE-02 | Create Draft      | Create a new case with DRAFT status.           |
+| CASE-03 | View My Cases     | List the client's cases.                       |
+| CASE-04 | View Case Details | Display a single case.                         |
+| CASE-05 | Edit Draft        | Update an existing draft case.                 |
+| CASE-06 | Delete Draft      | Soft-delete an existing draft case.            |
+| CASE-07 | Submit Case       | Validate and submit a draft case.              |
+| CASE-08 | Close Case        | Close a submitted case.                        |
+| CASE-09 | Paginate Cases    | Paginate the case list.                        |
+| CASE-10 | Filter Cases      | Filter the case list.                          |
+| CASE-11 | Search Cases      | Search the case list.                          |
 
 ## Dependencies
 
@@ -41,9 +47,7 @@
 
 ## Definition of Done
 
-- All five stories are completed.
-- Clients can create, edit, delete, and submit their own drafts.
+- All stories are completed.
 - Business rules and authorization are enforced by the backend.
 - Frontend handles loading, validation, success, and error states.
 - Automated FE and BE tests pass.
-- End-to-end case submission flow passes.

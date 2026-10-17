@@ -15,4 +15,4 @@ A draft whose legal category was deactivated can't be saved or submitted with it
 
 ## Dependencies
 
-- CASE-03-01, CASE-03-03.
+- CASE-04-01, CASE-05-02.

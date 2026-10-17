@@ -1,18 +1,29 @@
-# Current Feature
+# Current Feature: AUTH-03-02 Protected Routes
 
-<!-- Feature name and short description -->
+Prevent unauthenticated clients from accessing protected pages.
 
 ## Status
 
-<!-- Not Started / In Progress / Completed -->
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- Protected routes implemented with React Router, using the auth state from AUTH-03-01 (`useAuth` / `AuthProvider`).
+- Authenticated clients can access protected pages.
+- Unauthenticated clients are redirected to `/login`.
+- Refreshing a protected page does not redirect clients with valid sessions.
+- Expired or invalid sessions redirect clients to `/login`.
+- Protected pages are not displayed while authentication is being checked (loading state shown instead).
+- Automated tests added and passing.
 
 ## Notes
 
-<!-- Any extra notes -->
+- Type: Frontend only. Spec: `context/epics/02-authentication/stories/AUTH-03-session/tasks/AUTH-03-02-protected-routes.md`.
+- Out of scope: backend authentication/authorization, session creation and restoration API, login and logout functionality.
+- AUTH-03-01 already restores the client on start-up via `fetchCurrentUser()` behind a full-screen `Spin`; any failure leaves them signed out. The guard should build on that state rather than re-fetching.
+- "Expired or invalid sessions" covers the start-up check failing (401 from `GET /auth/me`) — those clients must end up on `/login`.
+- `renderWithProviders` takes a `user` option that skips the session check — use it for authenticated route tests; use MSW for the unauthenticated/expired cases.
+- Routes are centralized in `routes/paths.ts`; protected pages sit under `AuthenticatedLayout`, public auth pages under `PublicLayout`.
 
 ## History
 

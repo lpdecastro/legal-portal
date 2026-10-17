@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import { Spin } from 'antd'
 import { fetchCurrentUser } from '../api/auth'
 import type { AuthenticatedUser } from '../api/auth'
+import { onUnauthorized } from '../api/client'
 import { AuthContext } from './AuthContext'
 
 interface AuthProviderProps {
@@ -17,6 +18,10 @@ function AuthProvider({ children, initialUser }: AuthProviderProps) {
   const [user, setUser] = useState<AuthenticatedUser | null>(initialUser ?? null)
   const [restoring, setRestoring] = useState(initialUser === undefined)
   const value = useMemo(() => ({ user, setUser }), [user])
+
+  // Any 401 means the session is gone (expired, ended on the server, or never existed), so sign the client out.
+  // Protected routes then redirect to the login page.
+  useEffect(() => onUnauthorized(() => setUser(null)), [])
 
   useEffect(() => {
     if (!restoring) return

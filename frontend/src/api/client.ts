@@ -34,6 +34,18 @@ async function readProblem(response: Response): Promise<ProblemDetails | undefin
   }
 }
 
+type UnauthorizedListener = () => void
+
+const unauthorizedListeners = new Set<UnauthorizedListener>()
+
+// Notifies the listener whenever the API answers 401, e.g. because the session expired. Returns an unsubscribe function.
+export function onUnauthorized(listener: UnauthorizedListener): () => void {
+  unauthorizedListeners.add(listener)
+  return () => {
+    unauthorizedListeners.delete(listener)
+  }
+}
+
 async function send(path: string, init: RequestInit): Promise<Response> {
   let response: Response
   try {
@@ -41,6 +53,9 @@ async function send(path: string, init: RequestInit): Promise<Response> {
     response = await fetch(`${API_BASE_URL}${path}`, { credentials: 'same-origin', ...init })
   } catch {
     throw new ApiError(0)
+  }
+  if (response.status === 401) {
+    unauthorizedListeners.forEach((listener) => listener())
   }
   if (!response.ok) {
     throw new ApiError(response.status, await readProblem(response))

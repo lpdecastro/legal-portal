@@ -1,4 +1,6 @@
 import { createBrowserRouter, Navigate } from 'react-router'
+import type { RouteObject } from 'react-router'
+import RequireAuth from '../auth/RequireAuth'
 import AuthenticatedLayout from '../layouts/AuthenticatedLayout'
 import PublicLayout from '../layouts/PublicLayout'
 import CaseDetailsPage from '../pages/CaseDetailsPage'
@@ -16,8 +18,8 @@ import SettingsPage from '../pages/SettingsPage'
 import VerifyEmailPage from '../pages/VerifyEmailPage'
 import { paths } from './paths'
 
-export const router = createBrowserRouter([
-  // TODO: redirect to /login when unauthenticated once auth lands.
+export const routes: RouteObject[] = [
+  // Signed-out clients are sent on from /dashboard to /login by RequireAuth.
   { path: '/', element: <Navigate to={paths.dashboard} replace /> },
   {
     element: <PublicLayout />,
@@ -30,17 +32,23 @@ export const router = createBrowserRouter([
     ],
   },
   {
-    // TODO: guard with an auth check once protected routes land.
-    element: <AuthenticatedLayout />,
+    element: <RequireAuth />,
     children: [
-      { path: paths.dashboard, element: <DashboardPage /> },
-      { path: paths.cases, element: <MyCasesPage /> },
-      { path: paths.createCase, element: <CreateCasePage /> },
-      { path: paths.caseDetails, element: <CaseDetailsPage /> },
-      { path: paths.editCase, element: <EditCasePage /> },
-      { path: paths.profile, element: <ProfilePage /> },
-      { path: paths.settings, element: <SettingsPage /> },
+      {
+        element: <AuthenticatedLayout />,
+        children: [
+          { path: paths.dashboard, element: <DashboardPage /> },
+          { path: paths.cases, element: <MyCasesPage /> },
+          { path: paths.createCase, element: <CreateCasePage /> },
+          { path: paths.caseDetails, element: <CaseDetailsPage /> },
+          { path: paths.editCase, element: <EditCasePage /> },
+          { path: paths.profile, element: <ProfilePage /> },
+          { path: paths.settings, element: <SettingsPage /> },
+        ],
+      },
     ],
   },
   { path: '*', element: <NotFoundPage /> },
-])
+]
+
+export const router = createBrowserRouter(routes)

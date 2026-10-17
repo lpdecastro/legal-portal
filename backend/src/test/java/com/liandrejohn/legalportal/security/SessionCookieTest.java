@@ -82,4 +82,50 @@ class SessionCookieTest {
         }
     }
 
+    @Test
+    void logoutClearsSessionCookie() throws Exception {
+        String email = "client-" + UUID.randomUUID() + "@example.com";
+        registrationService.register(new RegisterRequest("John", "Doe", email, "password123456"));
+
+        try (HttpClient client = HttpClient.newHttpClient()) {
+            HttpResponse<String> csrf = client.send(
+                    HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/api/v1/auth/csrf")).build(),
+                    HttpResponse.BodyHandlers.ofString());
+            HttpResponse<Void> login = client.send(
+                    HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/api/v1/auth/login"))
+                        .header("Cookie", sessionCookie(csrf))
+                        .header("X-XSRF-TOKEN", (String) JsonPath.read(csrf.body(), "$.token"))
+                        .header("Content-Type", "application/json")
+                        .POST(HttpRequest.BodyPublishers
+                            .ofString("{\"email\":\"%s\",\"password\":\"password123456\"}".formatted(email)))
+                        .build(),
+                    HttpResponse.BodyHandlers.discarding());
+            String session = sessionCookie(login);
+            // Login replaced the CSRF token
+            HttpResponse<String> postLoginCsrf = client.send(
+                    HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/api/v1/auth/csrf"))
+                        .header("Cookie", session)
+                        .build(),
+                    HttpResponse.BodyHandlers.ofString());
+
+            HttpRequest logout = HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/api/v1/auth/logout"))
+                .header("Cookie", session)
+                .header("X-XSRF-TOKEN", (String) JsonPath.read(postLoginCsrf.body(), "$.token"))
+                .POST(HttpRequest.BodyPublishers.noBody())
+                .build();
+            HttpResponse<Void> response = client.send(logout, HttpResponse.BodyHandlers.discarding());
+
+            assertThat(response.statusCode()).isEqualTo(204);
+            assertThat(response.headers().allValues("Set-Cookie")).singleElement()
+                .asString()
+                .startsWith("SESSION=;")
+                .contains("Max-Age=0", "Path=/", "Secure", "HttpOnly", "SameSite=Lax");
+        }
+    }
+
+    /** The {@code name=value} part of the response's SESSION cookie. */
+    private static String sessionCookie(HttpResponse<?> response) {
+        return response.headers().firstValue("Set-Cookie").orElseThrow().split(";", 2)[0];
+    }
+
 }

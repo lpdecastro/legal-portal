@@ -77,7 +77,7 @@ A malicious site can make the browser send the `SESSION` cookie. It cannot read 
 - **Cookie flags:** `server.servlet.session.cookie.http-only`, `secure` and `same-site` set the flags on Spring Session's cookie.
 - **Public endpoints:** `GET /api/v1/auth/csrf`, `POST /api/v1/auth/register`, `POST /api/v1/auth/login` and `GET /actuator/health/**`. Every other request requires authentication. The public POSTs still need a CSRF token.
 - **Token rotation on login:** a successful login replaces the CSRF token (and the session ID). The SPA must fetch a new token from `GET /api/v1/auth/csrf` before its next state-changing request. See [`session-login.md`](session-login.md).
-- **Disabled defaults:** Spring Security's default `POST /logout` filter is turned off, because logout will get its own API endpoint. The request cache is also turned off.
+- **Disabled defaults:** Spring Security's default `POST /logout` filter is turned off, because logout is its own API endpoint (`POST /api/v1/auth/logout`, see [`session-logout.md`](session-logout.md)). The request cache is also turned off.
 
 ## Tests
 

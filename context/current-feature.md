@@ -1,18 +1,27 @@
-# Current Feature
+# Current Feature: AUTH-04-01 Logout API
 
-<!-- Feature name and short description -->
+Allow authenticated clients to securely log out through the Spring Boot API.
 
 ## Status
 
-<!-- Not Started / In Progress / Completed -->
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- Implement `POST /api/v1/auth/logout` (no request body).
+- Invalidate the server-side session using Spring Security (Spring Session JDBC row removed).
+- Clear the session cookie: `Set-Cookie: SESSION=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=Lax`.
+- Successful logout returns HTTP 204 with no body.
+- Require a valid CSRF token (`X-XSRF-TOKEN`); missing/invalid token returns 403 `FORBIDDEN` Problem Details ("Invalid or missing CSRF token.", `application/problem+json`).
+- Reusing the invalidated session returns HTTP 401 on protected APIs (e.g. `GET /api/v1/auth/me`).
+- Add automated tests; all tests pass.
 
 ## Notes
 
-<!-- Any extra notes -->
+- Type: Backend only. Spec: `context/epics/02-authentication/stories/AUTH-04-logout/tasks/AUTH-04-01-logout-api.md`.
+- Out of scope: logout UI (AUTH-04-02), login/session creation, session restoration, protected frontend routes.
+- Builds on AUTH-00-01 (CSRF + Spring Session JDBC), AUTH-02-01 (`SessionLogin`), AUTH-03-01 (`GET /auth/me`, `SessionLogin.end`).
+- Error responses follow RFC 9457 Problem Details with `errorCode`, `timestamp`, `traceId`.
 
 ## History
 

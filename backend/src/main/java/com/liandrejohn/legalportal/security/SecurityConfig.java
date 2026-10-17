@@ -46,7 +46,7 @@ public class SecurityConfig {
             .exceptionHandling((exceptions) -> exceptions
                 .authenticationEntryPoint(authenticationEntryPoint)
                 .accessDeniedHandler(accessDeniedHandler))
-            // Logout gets its own API endpoint later; the default POST /logout filter isn't wanted
+            // Logout is the POST /api/v1/auth/logout API endpoint; the default POST /logout filter isn't wanted
             .logout(AbstractHttpConfigurer::disable)
             .requestCache(AbstractHttpConfigurer::disable);
         return http.build();

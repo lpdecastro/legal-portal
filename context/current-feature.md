@@ -1,29 +1,18 @@
-# Current Feature: AUTH-03-02 Protected Routes
+# Current Feature
 
-Prevent unauthenticated clients from accessing protected pages.
+<!-- Feature name and short description -->
 
 ## Status
 
-In Progress
+<!-- Not Started / In Progress / Completed -->
 
 ## Goals
 
-- Protected routes implemented with React Router, using the auth state from AUTH-03-01 (`useAuth` / `AuthProvider`).
-- Authenticated clients can access protected pages.
-- Unauthenticated clients are redirected to `/login`.
-- Refreshing a protected page does not redirect clients with valid sessions.
-- Expired or invalid sessions redirect clients to `/login`.
-- Protected pages are not displayed while authentication is being checked (loading state shown instead).
-- Automated tests added and passing.
+<!-- Goals and requirements -->
 
 ## Notes
 
-- Type: Frontend only. Spec: `context/epics/02-authentication/stories/AUTH-03-session/tasks/AUTH-03-02-protected-routes.md`.
-- Out of scope: backend authentication/authorization, session creation and restoration API, login and logout functionality.
-- AUTH-03-01 already restores the client on start-up via `fetchCurrentUser()` behind a full-screen `Spin`; any failure leaves them signed out. The guard should build on that state rather than re-fetching.
-- "Expired or invalid sessions" covers the start-up check failing (401 from `GET /auth/me`) — those clients must end up on `/login`.
-- `renderWithProviders` takes a `user` option that skips the session check — use it for authenticated route tests; use MSW for the unauthenticated/expired cases.
-- Routes are centralized in `routes/paths.ts`; protected pages sit under `AuthenticatedLayout`, public auth pages under `PublicLayout`.
+<!-- Any extra notes -->
 
 ## History
 
@@ -40,3 +29,4 @@ In Progress
 - **AUTH-02-01: Login API** (2026-10-16) — Public, CSRF-protected `POST /api/v1/auth/login` authenticating email (trimmed/lowercased) + BCrypt password via a `DaoAuthenticationProvider`/`ClientUserDetailsService`; 200 returns `{ id, email, firstName, lastName }`; `SessionLogin` changes the session ID, replaces the CSRF token and saves the `SecurityContext` to the Spring Session JDBC session; same generic 401 `UNAUTHORIZED` for unknown email, wrong password, suspended/disabled/deleted accounts (status checked after the password); in-memory `LoginAttemptLimiter` (5 failures/email, 50/IP per 15 min, `app.security.login-rate-limit.*`) returns 429 `RATE_LIMIT_EXCEEDED`; `server.forward-headers-strategy: native` for client IPs behind the ALB; flow in `docs/session-login.md`.
 - **AUTH-02-02: Login Form** (2026-10-16) — Ant Design form on `/login` (email, password) with required/email-format validation; `login()` posts to `POST /api/v1/auth/login` via `api/client.ts` (CSRF token fetched first, sent in `X-XSRF-TOKEN`); signed-in client kept in React state via `AuthProvider`/`AuthContext` and `useAuth`, set by `useLogin`; every 401 shows the generic "Invalid email or password." alert, API `fieldErrors` go under fields, other errors (e.g. 429) in an alert; form disabled/loading while submitting; success redirects to `/dashboard`; `renderWithProviders` wraps `AuthProvider`; RTL + MSW tests. User state is lost on refresh until session restoration (`GET /auth/me`) lands.
 - **AUTH-03-01: Session Restoration** (2026-10-16) — `GET /api/v1/auth/me` returns 200 `{ id, email, firstName, lastName }` (`AuthenticatedClientResponse`, shared with login) for an authenticated session, reloading user and profile from the database; missing, unknown, anonymous or expired sessions get 401 `UNAUTHORIZED` "Authentication required." from the security entry point; accounts deleted, suspended or disabled after login have their session ended (`SessionLogin.end`) and get the same 401; `AuthProvider` restores the client via `fetchCurrentUser()` on start-up behind a full-screen `Spin`, any failure leaves them signed out; profile menu shows the client's name; `renderWithProviders` takes a `user` option that skips the check; `CurrentClientIntegrationTest`, `AuthProvider`/`ProfileMenu` tests; flow in `docs/session-restoration.md`.
+- **AUTH-03-02: Protected Routes** (2026-10-17) — `RequireAuth` layout route wraps `AuthenticatedLayout` and redirects signed-out clients to `/login` (replace); relies on `AuthProvider` holding rendering behind its `Spin` until the `GET /auth/me` check settles, so valid sessions survive refresh and protected pages never flash; `api/client.ts` exposes `onUnauthorized` and `AuthProvider` signs the client out on any 401, so sessions that expire mid-use also land on `/login`; routes exported as `routes` for tests; `RequireAuth` tests; flow in `docs/protected-routes.md`.

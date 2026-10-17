@@ -37,6 +37,17 @@ class CaseService {
         return CaseResponse.from(legalCaseRepository.save(draft));
     }
 
+    /** Lists the client's own non-deleted cases in any status, newest first. */
+    @Transactional(readOnly = true)
+    CaseListResponse listCases(UUID userId) {
+        ClientProfile client = findActiveClient(userId);
+        return new CaseListResponse(
+                legalCaseRepository.findByClientIdAndDeletedAtIsNullOrderByCreatedAtDescIdDesc(client.getId())
+                    .stream()
+                    .map(CaseSummaryResponse::from)
+                    .toList());
+    }
+
     /** Returns one of the client's own non-deleted cases, in any status. */
     @Transactional(readOnly = true)
     CaseResponse getCase(UUID userId, UUID caseId) {

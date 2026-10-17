@@ -39,13 +39,20 @@ Allow authenticated clients to retrieve their own cases.
 3. Return an empty list when no cases exist.
 4. Never expose another client's cases.
 5. Follow the standard API error response format.
+6. Include cases in every status (`DRAFT`, `SUBMITTED`, `CLOSED`).
+7. `category` is the category name.
+8. Sort newest first (`createdAt` descending).
+9. Reject suspended, disabled or deleted accounts with `401`.
 
 ## Testing
 
 - Client sees their own cases.
 - Client cannot see another client's cases.
 - Soft-deleted cases are excluded.
+- Cases in every status are listed, newest first.
+- Client with no cases gets an empty `content` list.
 - Unauthenticated requests return `401`.
+- Suspended clients get `401`.
 
 ## Dependencies
 

@@ -42,6 +42,12 @@ class CaseController {
         return ResponseEntity.created(URI.create(CASES_PATH + "/" + created.id())).body(created);
     }
 
+    /** Lists the session's client's cases, newest first. */
+    @GetMapping
+    CaseListResponse list(@AuthenticationPrincipal AuthenticatedUser user) {
+        return caseService.listCases(user.getId());
+    }
+
     /** Returns one of the session's client's cases; any other case is answered with 404. */
     @GetMapping("/{id}")
     CaseResponse get(@AuthenticationPrincipal AuthenticatedUser user, @PathVariable UUID id) {

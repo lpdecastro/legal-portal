@@ -1,18 +1,29 @@
-# Current Feature
+# Current Feature: CASE-03-01 List My Cases API
 
-<!-- Feature name and short description -->
+Authenticated `GET /api/v1/cases` returning the session's client's cases (BE).
 
 ## Status
 
-<!-- Not Started / In Progress / Completed -->
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- `GET /api/v1/cases` returns 200 `{ content: [{ id, title, category, status, createdAt }] }` (`category` is the category name).
+- Only cases owned by the authenticated client; another client's cases never appear.
+- Soft-deleted cases (`deleted_at` set) excluded.
+- Empty `content: []` when the client has no cases.
+- All statuses included, sorted newest first (`createdAt` desc).
+- Suspended/disabled/deleted accounts get 401.
+- Unauthenticated requests get 401 `UNAUTHORIZED`; errors follow Problem Details format.
+- Integration tests: own cases listed, other client's excluded, soft-deleted excluded, empty list, 401.
 
 ## Notes
 
-<!-- Any extra notes -->
+- Spec: `context/epics/03-case-management/stories/CASE-03-view-my-cases/tasks/CASE-03-01-list-my-cases-api.md`.
+- Consumer: CASE-03-02 My Cases Page.
+- `project-overview.md` plans filtering, sorting and pagination for `GET /cases` (Spring Data `Pageable`, server-enforced max page size); the contract wraps results in `content`, so keep the shape page-ready. Filtering/search not in this task's ACs.
+- Reuse ownership/soft-delete pattern from `LegalCaseRepository.findByIdAndClientIdAndDeletedAtIsNull`; tag with `ApiTags` `Cases`.
+- Errors: 401, 500.
 
 ## History
 

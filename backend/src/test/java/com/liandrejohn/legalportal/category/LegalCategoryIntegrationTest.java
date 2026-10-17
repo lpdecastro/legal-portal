@@ -45,6 +45,8 @@ class LegalCategoryIntegrationTest {
 
     @BeforeEach
     void removeSeededCategories() {
+        // Cases left by other test classes reference categories
+        jdbcTemplate.update("DELETE FROM cases");
         jdbcTemplate.update("DELETE FROM legal_categories");
     }
 

@@ -1,18 +1,28 @@
-# Current Feature
+# Current Feature: CASE-02-01 Create Draft API
 
-<!-- Feature name and short description -->
+Authenticated `POST /api/v1/cases` creating a `DRAFT` case owned by the current client.
 
 ## Status
 
-<!-- Not Started / In Progress / Completed -->
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- `POST /api/v1/cases` (authenticated, CSRF-protected) creates a case with status `DRAFT`.
+- Request `{ title, categoryId, description?, location? }`: `title` required, ≤200 chars; `categoryId` required, must reference an active legal category; `description` optional; `location` optional, ≤255 chars.
+- Ownership (`client_id` → `client_profiles.id`) comes from the authenticated session, never the request body.
+- 201 returns `{ id, title, categoryId, description, location, status, createdAt, updatedAt }` with `Location: /api/v1/cases/{id}`.
+- 400 `VALIDATION_ERROR` with `fieldErrors` for missing/invalid fields and for nonexistent or inactive categories (on `categoryId`).
+- 401 `UNAUTHORIZED` without a session; unexpected errors 500 `INTERNAL_ERROR`; all errors as RFC 9457 Problem Details.
+- Invalid requests create no case.
+- Integration tests: success, omitted optional fields, required-field validation, inactive/nonexistent category, owner is the authenticated client, status `DRAFT`, unauthenticated rejected, no row on invalid input.
 
 ## Notes
 
-<!-- Any extra notes -->
+- Spec: `context/epics/03-case-submission/stories/CASE-02-create-draft/tasks/CASE-02-01-create-draft-api.md`.
+- New Flyway migration for `cases` per `project-overview.md` data model: UUID PK (v7 via `@UuidGenerator`), `client_id` FK `client_profiles`, `category_id` FK `legal_categories`, `title varchar(200)`, `description text`, `location varchar(255)`, `status` (DRAFT/SUBMITTED/CLOSED), `created_at`, `updated_at`, `submitted_at`, `closed_at`, `deleted_at` (soft delete).
+- Reuse `LegalCategoryRepository` for the active-category check, `ApiException`/`ApiExceptionHandler` for errors, and the current-client lookup used by `GET /auth/me`.
+- Description is not required for drafts (only for submission).
 
 ## History
 

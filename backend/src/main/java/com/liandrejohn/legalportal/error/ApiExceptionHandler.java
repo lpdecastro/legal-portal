@@ -22,7 +22,9 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice
 class ApiExceptionHandler {
 
-    private static final String VALIDATION_ERROR = "VALIDATION_ERROR";
+    static final String VALIDATION_ERROR = "VALIDATION_ERROR";
+
+    static final String VALIDATION_DETAIL = "One or more fields contain invalid values.";
 
     private static final String VALIDATION_TITLE = "Validation Failed";
 
@@ -36,11 +38,12 @@ class ApiExceptionHandler {
             .sorted(Comparator.comparing(FieldErrorDetail::field).thenComparing(FieldErrorDetail::message))
             .toList();
 
-        ProblemDetail problem = ProblemDetails.of(HttpStatus.BAD_REQUEST, VALIDATION_ERROR,
-                "One or more fields contain invalid values.", request.getRequestURI());
-        problem.setTitle(VALIDATION_TITLE);
-        problem.setProperty("fieldErrors", fieldErrors);
-        return respond(request, problem);
+        return respond(request, validationProblem(fieldErrors, request));
+    }
+
+    @ExceptionHandler(FieldValidationException.class)
+    ResponseEntity<ProblemDetail> handleFieldValidation(FieldValidationException ex, HttpServletRequest request) {
+        return respond(request, validationProblem(ex.getFieldErrors(), request));
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
@@ -75,6 +78,14 @@ class ApiExceptionHandler {
         return ResponseEntity.status(problem.getStatus())
             .contentType(MediaType.APPLICATION_PROBLEM_JSON)
             .body(problem);
+    }
+
+    private static ProblemDetail validationProblem(List<FieldErrorDetail> fieldErrors, HttpServletRequest request) {
+        ProblemDetail problem = ProblemDetails.of(HttpStatus.BAD_REQUEST, VALIDATION_ERROR, VALIDATION_DETAIL,
+                request.getRequestURI());
+        problem.setTitle(VALIDATION_TITLE);
+        problem.setProperty("fieldErrors", fieldErrors);
+        return problem;
     }
 
     private static ResponseEntity<ProblemDetail> respond(HttpServletRequest request, ProblemDetail problem) {

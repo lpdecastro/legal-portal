@@ -1,29 +1,18 @@
-# Current Feature: CASE-04-01 Delete Draft API
+# Current Feature
 
-Soft-delete an existing draft case belonging to the authenticated client via `DELETE /api/v1/cases/{id}`.
+<!-- Feature name and short description -->
 
 ## Status
 
-In Progress
+<!-- Not Started / In Progress / Completed -->
 
 ## Goals
 
-- Authenticated, CSRF-protected `DELETE /api/v1/cases/{id}` returns `204 No Content` with no body
-- Only the session's client's own `DRAFT` cases can be deleted
-- Deletion sets `deleted_at` to the current timestamp; the row stays in the database
-- Soft-deleted cases are excluded from later retrievals (`GET /api/v1/cases/{id}` returns 404)
-- Repeated deletion, another client's case and nonexistent cases return 404 `CASE_NOT_FOUND`
-- Submitted and closed cases return 409 `INVALID_CASE_STATE`
-- Invalid UUID returns 400 `VALIDATION_ERROR`; unauthenticated returns 401; missing/invalid CSRF returns 403
-- Failed requests do not modify the case; all errors are RFC 9457 Problem Details
-- Integration tests cover every case above
+<!-- Goals and requirements -->
 
 ## Notes
 
-- Type: BE. Story: CASE-04 – Delete Draft Case.
-- Dependencies: CASE-02-01 (Create Draft API), CASE-03-01 (Get Case Details API), auth + CSRF.
-- Reuse existing pieces: `LegalCaseRepository.findByIdAndClientIdAndDeletedAtIsNull`, `CaseNotFoundException`, `InvalidCaseStateException`, `MethodArgumentTypeMismatchException` handler; check order like Update Draft (404 → 409).
-- Test patterns: follow `UpdateCaseIntegrationTest` / `GetCaseIntegrationTest` (SQL-inserted submitted/closed/deleted rows, rows unchanged on rejection).
+<!-- Any extra notes -->
 
 ## History
 
@@ -50,3 +39,4 @@ In Progress
 - **CASE-03-01: Get Case Details API** (2026-10-17) — Authenticated `GET /api/v1/cases/{id}` (`CaseController.get` → `CaseService.getCase`, read-only transaction) returns the session's client's case as `CaseResponse` `{ id, title, categoryId, description, location, status, createdAt, updatedAt }` in any status; ownership and soft deletion enforced in the query (`LegalCaseRepository.findByIdAndClientIdAndDeletedAtIsNull`), so another client's, deleted and nonexistent cases get the same 404 `CASE_NOT_FOUND` "Case not found." (`CaseNotFoundException`); non-UUID IDs get 400 `VALIDATION_ERROR` "Parameter 'id' has an invalid value." via a new `MethodArgumentTypeMismatchException` handler in `ApiExceptionHandler`; unauthenticated requests and suspended/disabled/deleted accounts get 401; `GetCaseIntegrationTest` (submitted/closed/deleted rows inserted via SQL).
 - **CASE-03-02: Update Draft API** (2026-10-17) — Authenticated, CSRF-protected `PATCH /api/v1/cases/{id}` (`CaseController.update` → `CaseService.updateDraft`) partially updates one of the session's client's drafts and returns 200 `CaseResponse`; `UpdateCaseRequest` is a class with `Optional` fields set via setters (Jackson gives records an empty `Optional` for omitted fields too), so omitted fields (`null`) stay unchanged and explicit JSON `null` (empty `Optional`) clears `description`/`location`; `title`/`categoryId` can't be cleared (400 "… is required"); constraints on `Optional` type arguments are skipped for omitted fields; input normalized like Create Draft; check order: Bean Validation 400 → 404 `CASE_NOT_FOUND` (other client's/deleted/nonexistent) → 409 `INVALID_CASE_STATE` (new `InvalidCaseStateException`, non-drafts) → 400 unknown/inactive category; `LegalCase.editDraft`, `saveAndFlush` so `@PreUpdate` refreshes `updatedAt` in the response, `createdAt`/`DRAFT` kept; `UpdateCaseIntegrationTest` (rows unchanged on every rejection, missing/invalid CSRF 403); left-out vs cleared tables in `docs/partial-case-updates.md`.
 - **CASE-03-03: Edit Draft Form** (2026-10-17) — `EditCasePage` on `/cases/:id/edit` loads the case via `fetchCase()` (`api/cases.ts`) and `useCase` (spinner; error `Alert` with Retry; 404 `CASE_NOT_FOUND` and malformed-ID 400 show a "Case not found" `Result`; submitted/closed cases show "This case can't be edited" with View case); drafts open prefilled with the category preselected; Save Changes sends `PATCH` via new `patchJson` client helper, `updateCase()` and `useUpdateCase` with only modified fields (normalized like Create Draft, cleared description/location sent as `null`); no changes skips the request with "No changes to save."; success shows "Draft updated." and navigates to `caseDetailsPath(id)`; shared `CaseForm` component and `useCaseFormErrors` hook (field errors under fields, others in the alert, values kept) reused by `CreateCasePage`; page keyed by ID; `EditCasePage` RTL + MSW tests; task spec gained ACs 16–17.
+- **CASE-04-01: Delete Draft API** (2026-10-17) — Authenticated, CSRF-protected `DELETE /api/v1/cases/{id}` (`CaseController.delete` → `CaseService.deleteDraft`) soft-deletes one of the session's client's drafts by setting `deleted_at` (`LegalCase.softDelete`, micros-truncated; `@PreUpdate` also refreshes `updated_at`) and returns 204 with no body; the row stays and `findByIdAndClientIdAndDeletedAtIsNull` stops finding it, so later `GET` and repeated `DELETE` get 404; check order like Update Draft: 404 `CASE_NOT_FOUND` (other client's/deleted/nonexistent) → 409 `INVALID_CASE_STATE` "Only draft cases can be deleted." (submitted/closed); non-UUID IDs 400, unauthenticated/suspended 401, missing/invalid CSRF 403; `DeleteCaseIntegrationTest` (rows unchanged on every rejection).

@@ -1,33 +1,18 @@
-# Current Feature: CASE-03-02 Update Draft API
+# Current Feature
 
-Authenticated, CSRF-protected `PATCH /api/v1/cases/{id}` that partially updates one of the current client's draft cases, for the Edit Draft form.
+<!-- Feature name and short description -->
 
 ## Status
 
-In Progress
+<!-- Not Started / In Progress / Completed -->
 
 ## Goals
 
-- `PATCH /api/v1/cases/{id}` (auth + `X-XSRF-TOKEN`) returns 200 with the updated `CaseResponse` `{ id, title, categoryId, description, location, status, createdAt, updatedAt }`.
-- Partial update: omitted fields stay unchanged; explicit `null` clears `description`/`location`.
-- `title` cannot be cleared (null/blank rejected), ≤200; `categoryId` cannot be cleared and must reference an active category (unknown/inactive → 400 `VALIDATION_ERROR` `categoryId` field error); `location` ≤255.
-- Same normalization as Create Draft: title/location trimmed, blank optional fields stored as null.
-- Only `DRAFT` cases can be updated; `SUBMITTED`/`CLOSED` → 409 `INVALID_CASE_STATE`.
-- Another client's, soft-deleted or nonexistent case → 404 `CASE_NOT_FOUND`; non-UUID ID → 400 `VALIDATION_ERROR`.
-- Status stays `DRAFT`, `createdAt` unchanged, `updatedAt` refreshed.
-- Invalid requests leave the case unmodified.
-- 401 `UNAUTHORIZED` without a session (and for suspended/disabled/deleted accounts); 403 `FORBIDDEN` for missing/invalid CSRF token.
-- All errors are RFC 9457 Problem Details with `errorCode`, `timestamp`, `traceId`.
-- Tests: full update, partial update preserves omitted fields, clearing optional fields, required/length validation, inactive/nonexistent category, submitted/closed → 409, other client's/nonexistent → 404, 401, 403 (missing/invalid CSRF), invalid requests don't modify data.
+<!-- Goals and requirements -->
 
 ## Notes
 
-- Type: BE. Story: CASE-03 – Edit Draft Case. Spec: `context/epics/03-case-submission/stories/CASE-03-edit-draft/tasks/CASE-03-02-update-draft-api.md`.
-- Depends on CASE-02-01 / CASE-03-01: reuse `CaseController`, `CaseService`, `CaseResponse`, `CaseNotFoundException`, `LegalCaseRepository.findByIdAndClientIdAndDeletedAtIsNull`, `LegalCategoryRepository.findByIdAndActiveTrue`, `FieldValidationException`.
-- Omitted vs explicit `null` must be distinguishable, so the request can't be a plain record like `CreateCaseRequest` (e.g. `JsonNullable`/`Optional` fields or tracking present keys); validation must still yield standard `fieldErrors`.
-- `INVALID_CASE_STATE` (409) is listed in `project-overview.md` but not implemented yet; add an exception + handler.
-- Check status (409) after ownership (404) and before field-level business validation, or decide order explicitly.
-- Follow `GetCaseIntegrationTest` / `CreateCaseIntegrationTest` patterns; insert submitted/closed rows via SQL.
+<!-- Any extra notes -->
 
 ## History
 
@@ -52,3 +37,4 @@ In Progress
 - **CASE-02-01: Create Draft API** (2026-10-17) — Authenticated, CSRF-protected `POST /api/v1/cases` (`CaseController` → `CaseService`) creates a `DRAFT` `LegalCase` (`case` is a Java keyword; package `cases`) owned by the session's client profile, ignoring any `clientId`/`status` in the body; `title` required ≤200, `categoryId` required and active (`LegalCategoryRepository.findByIdAndActiveTrue`), `description` optional, `location` optional ≤255; title/location trimmed, blank optional fields stored as null; 201 returns `{ id, title, categoryId, description, location, status, createdAt, updatedAt }` (`CaseResponse`) with `Location: /api/v1/cases/{id}`; unknown/inactive categories get the same 400 `VALIDATION_ERROR` `categoryId` field error via new `FieldValidationException` (business-rule field errors share `ApiExceptionHandler.validationProblem`); suspended/disabled/deleted accounts get 401; timestamps set in `@PrePersist`/`@PreUpdate` from one clock read truncated to micros (equal on create, match the DB); Flyway `V4__create_cases.sql` (status check, `client_id`/`category_id` indexes); `CreateCaseIntegrationTest`; `LegalCategoryIntegrationTest` clears cases before categories.
 - **CASE-02-02: Create Draft Form** (2026-10-17) — Ant Design Create Draft form on `/cases/new` (`CreateCasePage`): title (required, whitespace-only rejected, ≤200), legal category (required, `LegalCategorySelect`), optional description, optional location (≤255); title/location show non-blocking character counters; Save Draft posts via `createCase()` (`api/cases.ts`, `LegalCase`/`CaseStatus` types) and `useCreateCase`, trimming title/location and omitting empty optional fields; form disabled and button loading while saving, plus a ref guard against duplicate submits; 201 shows "Draft saved." and navigates to `caseDetailsPath(id)`; API `fieldErrors` mapped onto fields, other errors in an alert with values kept; `CreateCasePage` RTL + MSW tests; `RequireAuth` tests updated (heading, categories mock, `/cases/new` redirect).
 - **CASE-03-01: Get Case Details API** (2026-10-17) — Authenticated `GET /api/v1/cases/{id}` (`CaseController.get` → `CaseService.getCase`, read-only transaction) returns the session's client's case as `CaseResponse` `{ id, title, categoryId, description, location, status, createdAt, updatedAt }` in any status; ownership and soft deletion enforced in the query (`LegalCaseRepository.findByIdAndClientIdAndDeletedAtIsNull`), so another client's, deleted and nonexistent cases get the same 404 `CASE_NOT_FOUND` "Case not found." (`CaseNotFoundException`); non-UUID IDs get 400 `VALIDATION_ERROR` "Parameter 'id' has an invalid value." via a new `MethodArgumentTypeMismatchException` handler in `ApiExceptionHandler`; unauthenticated requests and suspended/disabled/deleted accounts get 401; `GetCaseIntegrationTest` (submitted/closed/deleted rows inserted via SQL).
+- **CASE-03-02: Update Draft API** (2026-10-17) — Authenticated, CSRF-protected `PATCH /api/v1/cases/{id}` (`CaseController.update` → `CaseService.updateDraft`) partially updates one of the session's client's drafts and returns 200 `CaseResponse`; `UpdateCaseRequest` is a class with `Optional` fields set via setters (Jackson gives records an empty `Optional` for omitted fields too), so omitted fields (`null`) stay unchanged and explicit JSON `null` (empty `Optional`) clears `description`/`location`; `title`/`categoryId` can't be cleared (400 "… is required"); constraints on `Optional` type arguments are skipped for omitted fields; input normalized like Create Draft; check order: Bean Validation 400 → 404 `CASE_NOT_FOUND` (other client's/deleted/nonexistent) → 409 `INVALID_CASE_STATE` (new `InvalidCaseStateException`, non-drafts) → 400 unknown/inactive category; `LegalCase.editDraft`, `saveAndFlush` so `@PreUpdate` refreshes `updatedAt` in the response, `createdAt`/`DRAFT` kept; `UpdateCaseIntegrationTest` (rows unchanged on every rejection, missing/invalid CSRF 403); left-out vs cleared tables in `docs/partial-case-updates.md`.

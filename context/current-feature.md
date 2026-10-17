@@ -1,31 +1,18 @@
-# Current Feature: CASE-03-03 Edit Draft Form
+# Current Feature
 
-Ant Design Edit Draft form letting authenticated clients update their own draft cases, reusing the Create Draft form.
+<!-- Feature name and short description -->
 
 ## Status
 
-In Progress
+<!-- Not Started / In Progress / Completed -->
 
 ## Goals
 
-- Edit Draft page reachable for the client's own draft case; unauthenticated clients redirected to login
-- Load case via `GET /api/v1/cases/{id}` with a loading indicator; load failures show an error message
-- Form prefilled: title (required, ≤200), legal category (required, `LegalCategorySelect`, preselected), description (optional), location (optional, ≤255)
-- Client-side required and length validation before saving
-- Save Changes sends `PATCH /api/v1/cases/{id}` with modified fields only
-- Save button disabled with loading indicator while saving
-- Success shows a message and navigates to the case details page
-- API `fieldErrors` shown under fields; other API failures shown in an alert without clearing the form
-- Submitted and closed cases cannot be edited
-- Missing cases or another client's cases (404 `CASE_NOT_FOUND`) show a not-found state
-- RTL + MSW tests cover populate, preselected category, modify/save, validation, success/navigation, loading states, field errors, failure preserving values, non-draft, not-found, unauthenticated redirect
+<!-- Goals and requirements -->
 
 ## Notes
 
-- Spec: `context/epics/03-case-submission/stories/CASE-03-edit-draft/tasks/CASE-03-03-edit-draft-form.md`
-- Type: FE. Reuse `CreateCasePage` form (extract shared form component), `api/cases.ts`, `useCreateCase` patterns.
-- PATCH semantics (CASE-03-02): omitted fields unchanged; explicit `null` clears `description`/`location`; `title`/`categoryId` can't be cleared; non-drafts → 409 `INVALID_CASE_STATE`.
-- Dependencies: CASE-01-02, CASE-02-02, CASE-03-01, CASE-03-02, protected routes.
+<!-- Any extra notes -->
 
 ## History
 
@@ -51,3 +38,4 @@ In Progress
 - **CASE-02-02: Create Draft Form** (2026-10-17) — Ant Design Create Draft form on `/cases/new` (`CreateCasePage`): title (required, whitespace-only rejected, ≤200), legal category (required, `LegalCategorySelect`), optional description, optional location (≤255); title/location show non-blocking character counters; Save Draft posts via `createCase()` (`api/cases.ts`, `LegalCase`/`CaseStatus` types) and `useCreateCase`, trimming title/location and omitting empty optional fields; form disabled and button loading while saving, plus a ref guard against duplicate submits; 201 shows "Draft saved." and navigates to `caseDetailsPath(id)`; API `fieldErrors` mapped onto fields, other errors in an alert with values kept; `CreateCasePage` RTL + MSW tests; `RequireAuth` tests updated (heading, categories mock, `/cases/new` redirect).
 - **CASE-03-01: Get Case Details API** (2026-10-17) — Authenticated `GET /api/v1/cases/{id}` (`CaseController.get` → `CaseService.getCase`, read-only transaction) returns the session's client's case as `CaseResponse` `{ id, title, categoryId, description, location, status, createdAt, updatedAt }` in any status; ownership and soft deletion enforced in the query (`LegalCaseRepository.findByIdAndClientIdAndDeletedAtIsNull`), so another client's, deleted and nonexistent cases get the same 404 `CASE_NOT_FOUND` "Case not found." (`CaseNotFoundException`); non-UUID IDs get 400 `VALIDATION_ERROR` "Parameter 'id' has an invalid value." via a new `MethodArgumentTypeMismatchException` handler in `ApiExceptionHandler`; unauthenticated requests and suspended/disabled/deleted accounts get 401; `GetCaseIntegrationTest` (submitted/closed/deleted rows inserted via SQL).
 - **CASE-03-02: Update Draft API** (2026-10-17) — Authenticated, CSRF-protected `PATCH /api/v1/cases/{id}` (`CaseController.update` → `CaseService.updateDraft`) partially updates one of the session's client's drafts and returns 200 `CaseResponse`; `UpdateCaseRequest` is a class with `Optional` fields set via setters (Jackson gives records an empty `Optional` for omitted fields too), so omitted fields (`null`) stay unchanged and explicit JSON `null` (empty `Optional`) clears `description`/`location`; `title`/`categoryId` can't be cleared (400 "… is required"); constraints on `Optional` type arguments are skipped for omitted fields; input normalized like Create Draft; check order: Bean Validation 400 → 404 `CASE_NOT_FOUND` (other client's/deleted/nonexistent) → 409 `INVALID_CASE_STATE` (new `InvalidCaseStateException`, non-drafts) → 400 unknown/inactive category; `LegalCase.editDraft`, `saveAndFlush` so `@PreUpdate` refreshes `updatedAt` in the response, `createdAt`/`DRAFT` kept; `UpdateCaseIntegrationTest` (rows unchanged on every rejection, missing/invalid CSRF 403); left-out vs cleared tables in `docs/partial-case-updates.md`.
+- **CASE-03-03: Edit Draft Form** (2026-10-17) — `EditCasePage` on `/cases/:id/edit` loads the case via `fetchCase()` (`api/cases.ts`) and `useCase` (spinner; error `Alert` with Retry; 404 `CASE_NOT_FOUND` and malformed-ID 400 show a "Case not found" `Result`; submitted/closed cases show "This case can't be edited" with View case); drafts open prefilled with the category preselected; Save Changes sends `PATCH` via new `patchJson` client helper, `updateCase()` and `useUpdateCase` with only modified fields (normalized like Create Draft, cleared description/location sent as `null`); no changes skips the request with "No changes to save."; success shows "Draft updated." and navigates to `caseDetailsPath(id)`; shared `CaseForm` component and `useCaseFormErrors` hook (field errors under fields, others in the alert, values kept) reused by `CreateCasePage`; page keyed by ID; `EditCasePage` RTL + MSW tests; task spec gained ACs 16–17.

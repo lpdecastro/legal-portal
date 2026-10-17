@@ -41,15 +41,17 @@ describe('protected routes', () => {
   it.each([
     ['/dashboard', 'Dashboard'],
     ['/cases', 'My Cases'],
-    ['/cases/new', 'Create Case'],
+    ['/cases/new', 'Create Draft Case'],
     ['/profile', 'Profile'],
   ])('lets a signed-in client open %s', async (path, title) => {
+    // The Create Draft page loads the legal categories.
+    server.use(http.get('*/api/v1/legal-categories', () => HttpResponse.json([])))
     renderWithProviders(<AppRoutes />, { initialEntries: [path], user: USER })
 
     expect(await screen.findByRole('heading', { name: title })).toBeInTheDocument()
   })
 
-  it.each(['/dashboard', '/cases', '/cases/abc', '/cases/abc/edit', '/profile', '/settings', '/'])(
+  it.each(['/dashboard', '/cases', '/cases/new', '/cases/abc', '/cases/abc/edit', '/profile', '/settings', '/'])(
     'redirects a signed-out client from %s to the login page',
     async (path) => {
       renderWithProviders(<AppRoutes />, { initialEntries: [path] })

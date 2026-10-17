@@ -1,18 +1,30 @@
-# Current Feature
+# Current Feature: CASE-02-02 Create Draft Form
 
-<!-- Feature name and short description -->
+Ant Design form on the Create Draft page that saves a new legal case as a draft via `POST /api/v1/cases`.
 
 ## Status
 
-<!-- Not Started / In Progress / Completed -->
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- Authenticated clients can open the Create Draft page (`/cases/new`); unauthenticated clients are redirected to `/login`.
+- Form fields: Title (required, ≤200 chars), Legal Category (required, `LegalCategorySelect` from CASE-01-02), Description (optional), Location (optional, ≤255 chars).
+- Required and max-length validation runs before saving.
+- "Save Draft" calls `POST /api/v1/cases` with the form values.
+- Save button is disabled and shows a loading indicator while saving; duplicate submits are prevented.
+- On 201, show a success message and navigate to the created case's details page (`caseDetailsPath(id)`).
+- API `fieldErrors` (e.g. `VALIDATION_ERROR` on `categoryId`) are shown under the matching fields.
+- Other API failures show an error message without clearing the form.
+- Tests: fields render, categories load, required and max-length validation, successful create + navigation, loading prevents duplicates, API field errors shown, API failure preserves values.
 
 ## Notes
 
-<!-- Any extra notes -->
+- Type: FE. Story: CASE-02 – Create Draft Case. Spec: `context/epics/03-case-submission/stories/CASE-02-create-draft/tasks/CASE-02-02-create-draft-form.md`.
+- Depends on CASE-01-02 (`LegalCategorySelect`, `useLegalCategories`), CASE-02-01 (API: body `{ title, categoryId, description, location }`, 201 `CaseResponse` `{ id, title, categoryId, description, location, status, createdAt, updatedAt }`), and AUTH-03-02 (`RequireAuth`).
+- Existing placeholder `pages/CreateCasePage.tsx`; paths `paths.createCase`, `caseDetailsPath()` in `routes/paths.ts`.
+- Reuse `postJson`/`ApiError` from `api/client.ts` and follow the Register/Login form patterns (field errors, alert, disabled while submitting).
+- Case details page is still a placeholder; navigation only needs to land on it.
 
 ## History
 

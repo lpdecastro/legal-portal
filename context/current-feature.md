@@ -1,29 +1,18 @@
-# Current Feature: AUTH-04-02 Logout UI
+# Current Feature
 
-Allow authenticated clients to log out through the React UI.
+<!-- Feature name and short description -->
 
 ## Status
 
-In Progress
+<!-- Not Started / In Progress / Completed -->
 
 ## Goals
 
-- Add a logout action to the header profile menu.
-- Integrate with `POST /api/v1/auth/logout` using the Fetch API client, following the contract in `AUTH-04-01-logout-api.md`.
-- Include the CSRF token in the request header (`X-XSRF-TOKEN`).
-- Clear the authenticated user from React state after a successful logout.
-- Redirect to `/login` after a successful logout.
-- Protected pages are inaccessible after logout.
-- Handle API errors and loading state: errors show an appropriate message without falsely marking the client as logged out.
-- Add automated tests; all tests pass.
+<!-- Goals and requirements -->
 
 ## Notes
 
-- Type: Frontend (FE). Spec: `context/epics/02-authentication/stories/AUTH-04-logout/tasks/AUTH-04-02-logout-ui.md`.
-- API (AUTH-04-01): authenticated, CSRF-protected; 204 with no body on success; 403 `FORBIDDEN` for missing/invalid CSRF token (session kept); 401 `UNAUTHORIZED` for anonymous/already-logged-out sessions.
-- Existing pieces to reuse: `api/client.ts` (CSRF fetch before POST, typed `ApiError`, `onUnauthorized`), `AuthProvider`/`AuthContext`/`useAuth`, `ProfileMenu`, `RequireAuth` (redirects signed-out clients to `/login`).
-- A 401 already triggers `onUnauthorized` sign-out via `AuthProvider`, so an expired session on logout ends signed out anyway.
-- Out of scope: logout API implementation, server-side session invalidation, protected route implementation.
+<!-- Any extra notes -->
 
 ## History
 
@@ -42,3 +31,4 @@ In Progress
 - **AUTH-03-01: Session Restoration** (2026-10-16) — `GET /api/v1/auth/me` returns 200 `{ id, email, firstName, lastName }` (`AuthenticatedClientResponse`, shared with login) for an authenticated session, reloading user and profile from the database; missing, unknown, anonymous or expired sessions get 401 `UNAUTHORIZED` "Authentication required." from the security entry point; accounts deleted, suspended or disabled after login have their session ended (`SessionLogin.end`) and get the same 401; `AuthProvider` restores the client via `fetchCurrentUser()` on start-up behind a full-screen `Spin`, any failure leaves them signed out; profile menu shows the client's name; `renderWithProviders` takes a `user` option that skips the check; `CurrentClientIntegrationTest`, `AuthProvider`/`ProfileMenu` tests; flow in `docs/session-restoration.md`.
 - **AUTH-03-02: Protected Routes** (2026-10-17) — `RequireAuth` layout route wraps `AuthenticatedLayout` and redirects signed-out clients to `/login` (replace); relies on `AuthProvider` holding rendering behind its `Spin` until the `GET /auth/me` check settles, so valid sessions survive refresh and protected pages never flash; `api/client.ts` exposes `onUnauthorized` and `AuthProvider` signs the client out on any 401, so sessions that expire mid-use also land on `/login`; routes exported as `routes` for tests; `RequireAuth` tests; flow in `docs/protected-routes.md`.
 - **AUTH-04-01: Logout API** (2026-10-17) — Authenticated, CSRF-protected `POST /api/v1/auth/logout` (`LogoutController`) ends the session via `SessionLogin.end` (`SecurityContextLogoutHandler`); Spring Session deletes the `SPRING_SESSION` row and expires the cookie (`SESSION=; Max-Age=0; Path=/; Secure; HttpOnly; SameSite=Lax`); returns 204 with no body; missing/invalid/pre-login CSRF token gets 403 `FORBIDDEN` with the session kept; anonymous sessions and reuse of the logged-out session get 401 `UNAUTHORIZED`; Spring Security's default `/logout` filter stays disabled; `LogoutIntegrationTest` plus a real-server cleared-cookie check in `SessionCookieTest`; flow in `docs/session-logout.md`.
+- **AUTH-04-02: Logout UI** (2026-10-17) — Profile menu "Log out" calls `POST /api/v1/auth/logout` via `useLogout` → `logout()` → new `postNoContent` client helper (fresh CSRF token in `X-XSRF-TOKEN`, shares `sendWithCsrf` with `postJson`); on 204 clears the user from auth state and navigates to `/login` (replace), so `RequireAuth` keeps protected pages out of reach; a 401 (session already gone) is treated as signed out; other failures (403/5xx/network) show the "We couldn't log you out. Please try again." toast and keep the client signed in; profile button shows a spinner and the menu is disabled while in flight (double submits ignored); `ResizeObserver` stub added to test setup for antd popups; `ProfileMenu` tests against the real route tree; UI flow added to `docs/session-logout.md`.

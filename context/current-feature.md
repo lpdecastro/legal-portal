@@ -1,24 +1,18 @@
-# Current Feature: BKL-03 SQL Debug Logging
+# Current Feature
 
-Turn on Hibernate SQL logging from `.env` for local debugging (BE).
+<!-- Feature name and short description -->
 
 ## Status
 
-In Progress
+<!-- Not Started / In Progress / Completed -->
 
 ## Goals
 
-- Env var `SQL_LOG_LEVEL` sets the `org.hibernate.SQL` log level.
-- Default is production-safe: SQL not logged (`INFO`).
-- `SQL_LOG_LEVEL=DEBUG` in `.env` logs each executed SQL statement after a restart.
-- `.env.example` documents the variable and its default.
+<!-- Goals and requirements -->
 
 ## Notes
 
-- Spec: `context/epics/99-backlog/tasks/BKL-03-sql-debug-logging.md`.
-- Follow the `OPENAPI_ENABLED` pattern: `logging.level.org.hibernate.SQL: ${SQL_LOG_LEVEL:INFO}` in `application.yaml`.
-- `.env` is imported as a properties file, so Boot's relaxed `LOGGING_LEVEL_ORG_HIBERNATE_SQL` env binding doesn't apply there; hence an explicit placeholder.
-- Bind parameters (`org.hibernate.orm.jdbc.bind`) out of scope; they'd log user data.
+<!-- Any extra notes -->
 
 ## History
 
@@ -49,3 +43,4 @@ In Progress
 - **FND-08: OpenAPI and Scalar Setup** (2026-10-18) — Springdoc (`springdoc-openapi-starter-webmvc-scalar` 3.1.1, built for Boot 4.1) serves the generated OpenAPI 3.1 document at public `GET /v3/api-docs` (title "Legal Portal API", version "v1" from `app.openapi.*` via `OpenApiProperties`/`OpenApiConfig`) and the Scalar UI at public `GET /scalar`; `OPENAPI_ENABLED`/`SCALAR_ENABLED` (default `true`, in `.env.example`) turn them off after a restart, after which the paths aren't served (signed-out requests get 401 like any unknown path, since the 404's `/error` dispatch requires auth); Scalar favicon set to `data:,` so the browser doesn't request a missing `/favicon.svg`/`/favicon.ico`; `ApiDocsTest`, `ApiDocsDisabledTest`; `docs/api-docs.md`, README link.
 - **BKL-02: Group API Docs by Area** (2026-10-18) — Every controller carries an OpenAPI `@Tag` from `ApiTags` (`Auth`: registration, login, logout, current client, CSRF; `Cases`; `Legal Categories`), so `/scalar` groups endpoints by area instead of `*-controller`; `ApiDocsTest` checks every operation in `/v3/api-docs` has exactly one of these tags; coding standard "Tag every controller with its API area".
 - **CASE-03-01: List My Cases API** (2026-10-18) — Authenticated `GET /api/v1/cases` (`CaseController.list` → `CaseService.listCases`, read-only transaction) returns the session's client's cases as `{ content: [{ id, title, category, status, createdAt }] }` (`CaseListResponse` of `CaseSummaryResponse`, `category` = category name) in every status, newest first (`createdAt` desc, then `id` desc); ownership and soft deletion enforced in the query (`LegalCaseRepository.findByClientIdAndDeletedAtIsNullOrderByCreatedAtDescIdDesc`, `@EntityGraph` fetches categories in the same query); `content: []` when there are none; unauthenticated and suspended/disabled/deleted accounts get 401; no pagination yet (`content` wrapper leaves room for page metadata); `ListCasesIntegrationTest`; task spec gained ACs 6–9.
+- **BKL-03: SQL Debug Logging** (2026-10-18) — `SQL_LOG_LEVEL` sets the `org.hibernate.SQL` log level via `logging.level.org.hibernate.SQL: ${SQL_LOG_LEVEL:INFO}` in `application.yaml` (explicit placeholder, since `.env` is imported as a properties file and Boot's relaxed `LOGGING_LEVEL_*` binding only applies to real env vars); default `INFO` logs no SQL, `DEBUG` in `.env` logs each executed statement after a restart; bind parameters stay unlogged (user data); documented in `.env.example`; `SqlLogLevelTest` (bare context, no DB; default check skipped when the local `.env` sets the variable, level reset after each test).

@@ -38,6 +38,15 @@ class CaseService {
         return CaseResponse.from(legalCaseRepository.save(draft));
     }
 
+    /** Returns one of the client's own non-deleted cases, in any status. */
+    @Transactional(readOnly = true)
+    CaseResponse getCase(UUID userId, UUID caseId) {
+        ClientProfile client = findActiveClient(userId);
+        return legalCaseRepository.findByIdAndClientIdAndDeletedAtIsNull(caseId, client.getId())
+            .map(CaseResponse::from)
+            .orElseThrow(CaseNotFoundException::new);
+    }
+
     /** Accounts deleted, suspended or disabled after login can't act on cases. */
     private ClientProfile findActiveClient(UUID userId) {
         return clientProfileRepository.findByUserId(userId).filter((profile) -> {

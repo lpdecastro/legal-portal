@@ -1,18 +1,28 @@
-# Current Feature
+# Current Feature: CASE-03-01 Get Case Details API
 
-<!-- Feature name and short description -->
+Authenticated `GET /api/v1/cases/{id}` returning one of the current client's non-deleted cases, for the Edit Draft form and Case Details page.
 
 ## Status
 
-<!-- Not Started / In Progress / Completed -->
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- Authenticated `GET /api/v1/cases/{id}` (no CSRF, read-only) returns 200 with `{ id, title, categoryId, description, location, status, createdAt, updatedAt }`.
+- Works for `DRAFT`, `SUBMITTED`, and `CLOSED` cases.
+- Only returns cases owned by the session's client profile; another client's, soft-deleted (`deleted_at` set), or nonexistent cases return 404 `CASE_NOT_FOUND` (indistinguishable).
+- Invalid UUID path value returns 400 `VALIDATION_ERROR` Problem Details.
+- Unauthenticated requests return 401 `UNAUTHORIZED`.
+- All errors are RFC 9457 Problem Details with `errorCode`, `timestamp`, `traceId`.
+- Tests: own draft, submitted and closed retrievable; other client's, soft-deleted, nonexistent → 404; invalid UUID → 400; unauthenticated → 401; response fields match.
 
 ## Notes
 
-<!-- Any extra notes -->
+- Type: BE. Story: CASE-03 – Edit Draft Case. Spec: `context/epics/03-case-submission/stories/CASE-03-edit-draft/tasks/CASE-03-01-get-case-details-api.md`.
+- Depends on CASE-02-01: reuse `CaseController`, `CaseService`, `CaseResponse`, `LegalCase` (`deletedAt` column exists), `LegalCaseRepository` (no finders yet; add an owner + `deletedAt IS NULL` lookup so ownership is enforced in the query).
+- Suspended/disabled/deleted accounts get 401, as in Create Draft.
+- `ApiExceptionHandler.handleUnexpected` would turn a `MethodArgumentTypeMismatchException` into a 500 or a non-standard Spring 400; add an explicit handler for the invalid-UUID case.
+- Follow `CreateCaseIntegrationTest` patterns (Testcontainers, rolled-back transactions); insert submitted/closed/deleted rows directly since those transitions don't exist yet.
 
 ## History
 

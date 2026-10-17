@@ -1,11 +1,14 @@
 package com.liandrejohn.legalportal.cases;
 
 import java.net.URI;
+import java.util.UUID;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -31,6 +34,12 @@ class CaseController {
             @Valid @RequestBody CreateCaseRequest request) {
         CaseResponse created = caseService.createDraft(user.getId(), request);
         return ResponseEntity.created(URI.create(CASES_PATH + "/" + created.id())).body(created);
+    }
+
+    /** Returns one of the session's client's cases; any other case is answered with 404. */
+    @GetMapping("/{id}")
+    CaseResponse get(@AuthenticationPrincipal AuthenticatedUser user, @PathVariable UUID id) {
+        return caseService.getCase(user.getId(), id);
     }
 
 }

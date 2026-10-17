@@ -16,6 +16,7 @@ import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 /** Turns controller exceptions into Problem Details responses. */
 @Slf4j
@@ -50,6 +51,16 @@ class ApiExceptionHandler {
     ResponseEntity<ProblemDetail> handleUnreadableBody(HttpServletRequest request) {
         ProblemDetail problem = ProblemDetails.of(HttpStatus.BAD_REQUEST, VALIDATION_ERROR,
                 "Request body is missing or malformed.", request.getRequestURI());
+        problem.setTitle(VALIDATION_TITLE);
+        return respond(request, problem);
+    }
+
+    /** A path or query parameter that can't be converted, e.g. a case ID that isn't a UUID. */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    ResponseEntity<ProblemDetail> handleArgumentTypeMismatch(MethodArgumentTypeMismatchException ex,
+            HttpServletRequest request) {
+        ProblemDetail problem = ProblemDetails.of(HttpStatus.BAD_REQUEST, VALIDATION_ERROR,
+                "Parameter '%s' has an invalid value.".formatted(ex.getName()), request.getRequestURI());
         problem.setTitle(VALIDATION_TITLE);
         return respond(request, problem);
     }

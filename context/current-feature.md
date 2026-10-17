@@ -1,28 +1,18 @@
-# Current Feature: CASE-02-01 Create Draft API
+# Current Feature
 
-Authenticated `POST /api/v1/cases` creating a `DRAFT` case owned by the current client.
+<!-- Feature name and short description -->
 
 ## Status
 
-In Progress
+<!-- Not Started / In Progress / Completed -->
 
 ## Goals
 
-- `POST /api/v1/cases` (authenticated, CSRF-protected) creates a case with status `DRAFT`.
-- Request `{ title, categoryId, description?, location? }`: `title` required, ≤200 chars; `categoryId` required, must reference an active legal category; `description` optional; `location` optional, ≤255 chars.
-- Ownership (`client_id` → `client_profiles.id`) comes from the authenticated session, never the request body.
-- 201 returns `{ id, title, categoryId, description, location, status, createdAt, updatedAt }` with `Location: /api/v1/cases/{id}`.
-- 400 `VALIDATION_ERROR` with `fieldErrors` for missing/invalid fields and for nonexistent or inactive categories (on `categoryId`).
-- 401 `UNAUTHORIZED` without a session; unexpected errors 500 `INTERNAL_ERROR`; all errors as RFC 9457 Problem Details.
-- Invalid requests create no case.
-- Integration tests: success, omitted optional fields, required-field validation, inactive/nonexistent category, owner is the authenticated client, status `DRAFT`, unauthenticated rejected, no row on invalid input.
+<!-- Goals and requirements -->
 
 ## Notes
 
-- Spec: `context/epics/03-case-submission/stories/CASE-02-create-draft/tasks/CASE-02-01-create-draft-api.md`.
-- New Flyway migration for `cases` per `project-overview.md` data model: UUID PK (v7 via `@UuidGenerator`), `client_id` FK `client_profiles`, `category_id` FK `legal_categories`, `title varchar(200)`, `description text`, `location varchar(255)`, `status` (DRAFT/SUBMITTED/CLOSED), `created_at`, `updated_at`, `submitted_at`, `closed_at`, `deleted_at` (soft delete).
-- Reuse `LegalCategoryRepository` for the active-category check, `ApiException`/`ApiExceptionHandler` for errors, and the current-client lookup used by `GET /auth/me`.
-- Description is not required for drafts (only for submission).
+<!-- Any extra notes -->
 
 ## History
 
@@ -44,3 +34,4 @@ In Progress
 - **AUTH-04-02: Logout UI** (2026-10-17) — Profile menu "Log out" calls `POST /api/v1/auth/logout` via `useLogout` → `logout()` → new `postNoContent` client helper (fresh CSRF token in `X-XSRF-TOKEN`, shares `sendWithCsrf` with `postJson`); on 204 clears the user from auth state and navigates to `/login` (replace), so `RequireAuth` keeps protected pages out of reach; a 401 (session already gone) is treated as signed out; other failures (403/5xx/network) show the "We couldn't log you out. Please try again." toast and keep the client signed in; profile button shows a spinner and the menu is disabled while in flight (double submits ignored); `ResizeObserver` stub added to test setup for antd popups; `ProfileMenu` tests against the real route tree; UI flow added to `docs/session-logout.md`.
 - **CASE-01-01: List Legal Categories API** (2026-10-17) — Authenticated `GET /api/v1/legal-categories` (`LegalCategoryController` → `LegalCategoryService`) returns active categories as `{ id, name, description }` (`LegalCategoryResponse`) sorted by name, `[]` when none are active, 401 `UNAUTHORIZED` Problem Details without a session; Flyway `V3__create_legal_categories.sql` creates `legal_categories` (unique name, `is_active`) and seeds six active categories; `LegalCategoryRepository.findByActiveTrueOrderByNameAsc` reusable for the inactive-category check on cases; catch-all `ApiExceptionHandler.handleUnexpected` returns 500 `INTERNAL_ERROR` Problem Details (cause logged under the `traceId`) and rethrows Spring MVC (`ErrorResponse`) and Spring Security exceptions; entities now generate UUID v7 IDs (`@UuidGenerator(style = VERSION_7)`, new coding standard; SQL-seeded rows stay v4 via `gen_random_uuid()`); `99-backlog` epic added; `LegalCategoryIntegrationTest` (rolled-back transactions), `LegalCategorySeedTest`, `ApiExceptionHandlerTest`.
 - **CASE-01-02: Legal Category Dropdown** (2026-10-17) — Reusable `LegalCategorySelect` (antd `Select`, works as a `Form.Item` control, value = category ID) for the Create/Edit Draft forms; `useLegalCategories` loads `GET /api/v1/legal-categories` via `fetchLegalCategories()` (`api/legalCategories.ts`) and sorts by name; loading state (disabled, "Loading categories…", preselected raw ID hidden), error `Alert` with Retry, "No legal categories available" empty state; RTL + MSW tests; backlog BKL-01 for drafts whose category was deactivated; `docs/integration-testing.md`.
+- **CASE-02-01: Create Draft API** (2026-10-17) — Authenticated, CSRF-protected `POST /api/v1/cases` (`CaseController` → `CaseService`) creates a `DRAFT` `LegalCase` (`case` is a Java keyword; package `cases`) owned by the session's client profile, ignoring any `clientId`/`status` in the body; `title` required ≤200, `categoryId` required and active (`LegalCategoryRepository.findByIdAndActiveTrue`), `description` optional, `location` optional ≤255; title/location trimmed, blank optional fields stored as null; 201 returns `{ id, title, categoryId, description, location, status, createdAt, updatedAt }` (`CaseResponse`) with `Location: /api/v1/cases/{id}`; unknown/inactive categories get the same 400 `VALIDATION_ERROR` `categoryId` field error via new `FieldValidationException` (business-rule field errors share `ApiExceptionHandler.validationProblem`); suspended/disabled/deleted accounts get 401; timestamps set in `@PrePersist`/`@PreUpdate` from one clock read truncated to micros (equal on create, match the DB); Flyway `V4__create_cases.sql` (status check, `client_id`/`category_id` indexes); `CreateCaseIntegrationTest`; `LegalCategoryIntegrationTest` clears cases before categories.

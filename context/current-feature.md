@@ -1,18 +1,28 @@
-# Current Feature
+# Current Feature: PROF-02-02 Change Password UI
 
-<!-- Feature name and short description -->
+Change Password form on the Profile & Settings page.
 
 ## Status
 
-<!-- Not Started / In Progress / Completed -->
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- Current password, new password and confirm password fields on the Settings page (`/settings`, replacing its placeholder; `/profile` keeps personal details).
+- All fields required; new password 12+ characters (and ≤72 bytes, like registration); confirm must match new password.
+- Show/hide controls on every password field.
+- Validation and API errors displayed (field errors under fields, others in an alert).
+- Success confirmation; password fields cleared after a successful change.
+- Duplicate submissions prevented.
+- Passwords never persisted in browser storage.
+- RTL + MSW tests cover success, validation and API errors.
 
 ## Notes
 
-<!-- Any extra notes -->
+- API: `PATCH /api/v1/clients/me/password` (PROF-02-01) takes `{ currentPassword, newPassword, confirmPassword }`, returns 204; session stays signed in.
+- Errors: 400 `VALIDATION_ERROR` with `fieldErrors` (incl. `confirmPassword` "Passwords do not match", `newPassword` "New password must differ from the current password"); 403 `INCORRECT_PASSWORD` "Current password is incorrect." (distinct from CSRF `FORBIDDEN`); 401 → login.
+- Passwords not trimmed. Needs a PATCH-with-204 client helper (existing: `patchJson`, `postNoContent`, `deleteNoContent`).
+- Reuse `useFormApiErrors` and the in-flight ref guard pattern from `useUpdateProfile`.
 
 ## History
 

@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { Alert, App, Button, Flex, Form, Input, Typography } from 'antd'
-import type { FormRule } from 'antd'
 import { Link, useNavigate } from 'react-router'
 import type { RegisterRequest } from '../api/auth'
 import { ApiError } from '../api/client'
 import { useRegister } from '../hooks/useRegister'
 import { paths } from '../routes/paths'
+import { confirmPasswordRules, newPasswordRules, PASSWORD_MIN_LENGTH } from '../utils/passwordRules'
 
 interface RegisterFormValues extends RegisterRequest {
   confirmPassword: string
@@ -13,30 +13,8 @@ interface RegisterFormValues extends RegisterRequest {
 
 type RegisterField = keyof RegisterFormValues
 
-const PASSWORD_MIN_LENGTH = 12
-// BCrypt only uses the first 72 bytes of a password; the API rejects anything longer.
-const PASSWORD_MAX_BYTES = 72
-
-const passwordRules: FormRule[] = [
-  { required: true, message: 'Password is required' },
-  { min: PASSWORD_MIN_LENGTH, message: `Password must contain at least ${PASSWORD_MIN_LENGTH} characters` },
-  {
-    validator: (_, value: string | undefined) =>
-      !value || new TextEncoder().encode(value).length <= PASSWORD_MAX_BYTES
-        ? Promise.resolve()
-        : Promise.reject(new Error('Password is too long')),
-  },
-]
-
-const confirmPasswordRules: FormRule[] = [
-  { required: true, message: 'Please confirm your password' },
-  ({ getFieldValue }) => ({
-    validator: (_, value: string | undefined) =>
-      !value || getFieldValue('password') === value
-        ? Promise.resolve()
-        : Promise.reject(new Error('Passwords do not match')),
-  }),
-]
+const passwordRules = newPasswordRules('Password is required')
+const passwordConfirmationRules = confirmPasswordRules('password', 'Please confirm your password')
 
 const formFields: readonly RegisterField[] = ['firstName', 'lastName', 'email', 'password']
 
@@ -157,7 +135,7 @@ function RegisterPage() {
           label="Confirm password"
           name="confirmPassword"
           dependencies={['password']}
-          rules={confirmPasswordRules}
+          rules={passwordConfirmationRules}
         >
           <Input.Password autoComplete="new-password" />
         </Form.Item>

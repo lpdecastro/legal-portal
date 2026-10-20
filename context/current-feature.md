@@ -1,30 +1,18 @@
-# Current Feature: CASE-09-01 Paginate Cases API
+# Current Feature
 
-Allow authenticated clients to retrieve their cases with server-side pagination via `GET /api/v1/cases?page=0&size=10`.
+<!-- Feature name and short description -->
 
 ## Status
 
-In Progress
+<!-- Not Started / In Progress / Completed -->
 
 ## Goals
 
-- Return only the requested page of the authenticated client's cases.
-- Zero-based `page` (default `0`); `size` default `10`, max `100`.
-- Sort by `createdAt` desc by default, with a stable secondary sort by `id`.
-- Return `page` metadata `{ size, number, totalElements, totalPages }` alongside `content`.
-- Return an empty `content` array for pages beyond the last page.
-- Reject negative page numbers and invalid page sizes with 400 (standard Problem Details format).
-- Exclude soft-deleted cases and other clients' cases.
-- Tests: different pages retrievable; metadata correct; consistent order across pages; out-of-range pages empty; invalid params 400; other clients' cases excluded; unauthenticated 401.
+<!-- Goals and requirements -->
 
 ## Notes
 
-- Type: BE. Story: CASE-09 – Paginate Cases. Depends on CASE-03-01 (List My Cases API) and auth/session management.
-- Extends existing `CaseController.list` → `CaseService.listCases` (`CaseListResponse` of `CaseSummaryResponse`, already `{ content }`); currently uses `LegalCaseRepository.findByClientIdAndDeletedAtIsNullOrderByCreatedAtDescIdDesc` with `@EntityGraph` for categories — switch to a `Pageable` query (keep the entity graph; watch for in-memory pagination warnings).
-- Per `project-overview.md`: Spring Data `Pageable` with a server-enforced max page size. Spec says reject invalid sizes (400) rather than silently clamp — decide how `size > 100` is handled (reject vs clamp) during start.
-- Error format: 400 `VALIDATION_ERROR` via `ApiExceptionHandler`.
-- Update `ListCasesIntegrationTest`; frontend `fetchCases()` unwraps `content`, so the added `page` field shouldn't break it.
-- Done when all ACs met and BE tests pass.
+<!-- Any extra notes -->
 
 ## History
 
@@ -63,3 +51,4 @@ In Progress
 - **CASE-07-02: Submit Case UI** (2026-10-20) — Submit on draft Case Details (`SubmitCaseButton` in `components/`) first checks the draft client-side via `submissionErrors` (`utils/submissionErrors.ts`: title required ≤200, active category, description required, location required ≤255; messages match the API) and lists what's missing in an "This draft isn't ready to submit" dialog with Edit Draft, without calling the API; complete drafts get a "Submit this case?" confirmation with Cancel/Submit; confirming sends `POST /api/v1/cases/{id}/submit` via new `postForJson` client helper (fresh CSRF token), `submitCase()` (`api/cases.ts`) and `useSubmitCase` (in-flight ref guard, resolves `undefined` for ignored duplicates); dialog locked and button loading while submitting; 200 shows "Case submitted." and updates the page in place via new `useCase.replace` (Edit/Submit/Delete gone, Close shown); 400 lists the API's `fieldErrors` with Edit Draft, 409 "This case has already been submitted or closed." and 404 "This case no longer exists…" toasts then reload the case, other failures "We couldn't submit this case. Please try again.", 401 goes to login; one antd `Modal` for both steps (two modals shared an `aria-labelledby` id in tests); `CaseDetailsPage` loads categories once and shares them with the category name and the Submit check (Submit disabled while loading, API checks the category if loading failed); `LegalCase` gains `submittedAt`; `CaseDetailsPage` submit tests.
 - **CASE-08-01: Close Case API** (2026-10-20) — Authenticated, CSRF-protected `POST /api/v1/cases/{id}/close` (`CaseController.close` → `CaseService.closeCase`) closes one of the session's client's submitted cases and returns 200 `CaseResponse`, which now includes `closedAt` (also on create/get/update/submit, `null` until closed) instead of the spec's `{ id, status, closedAt }`; check order: 404 `CASE_NOT_FOUND` (other client's/deleted/nonexistent) → 409 `INVALID_CASE_STATE` "Only submitted cases can be closed." (draft/closed); `LegalCase.close` sets `CLOSED` and `closed_at`, `@PreUpdate` refreshes `updated_at`, `created_at`/`submitted_at` kept; row locked during the check via `findLockedByIdAndClientIdAndDeletedAtIsNull`, so concurrent closes succeed only once; non-UUID IDs 400, unauthenticated/suspended 401, missing/invalid CSRF 403; `CloseCaseIntegrationTest` (rows unchanged on every rejection, 5 concurrent closes → one 200).
 - **CASE-08-02: Close Case UI** (2026-10-20) — Close Case on submitted Case Details (`CloseCaseButton` in `components/`) opens an antd `Modal` "Close this case?" with Cancel/Close Case; confirming sends `POST /api/v1/cases/{id}/close` via `postForJson`, `closeCase()` (`api/cases.ts`) and `useCloseCase` (in-flight ref guard, resolves `undefined` for ignored duplicates); dialog locked and button loading while closing; 200 shows "Case closed." and updates the page in place via `useCase.replace` (Closed status, "Closed on" date in the details card, no actions); 409 "This case has already been closed." and 404 "This case no longer exists…" toasts then reload the case, other failures "We couldn't close this case. Please try again." with the case unchanged, 401 goes to login; `LegalCase` gains `closedAt`; `CaseDetailsPage` close tests.
+- **CASE-09-01: Paginate Cases API** (2026-10-20) — `GET /api/v1/cases` takes zero-based `page` (default 0) and `size` (default 10, max 100) and returns `{ content, page: { size, number, totalElements, totalPages } }` (`CaseListResponse.PageMetadata`); `CaseService.listCases` builds a `PageRequest` sorted `createdAt` desc then `id` desc, so pages never overlap or skip cases created at the same instant; `LegalCaseRepository.findByClientIdAndDeletedAtIsNull(clientId, Pageable)` keeps the category `@EntityGraph` and excludes deleted and other clients' cases; pages past the last one return empty `content` with the real totals; negative `page` and `size` outside 1–100 are rejected (not clamped) with 400 `VALIDATION_ERROR` and `fieldErrors` ("Page must be 0 or greater", "Size must be between 1 and 100") via a new `HandlerMethodValidationException` handler in `ApiExceptionHandler`, non-integer values get the existing "Parameter '…' has an invalid value." 400; `ListCasesIntegrationTest` pagination tests.

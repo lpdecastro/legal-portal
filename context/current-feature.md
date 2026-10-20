@@ -1,31 +1,18 @@
-# Current Feature: CASE-07-01 Submit Case API
+# Current Feature
 
-Authenticated, CSRF-protected `POST /api/v1/cases/{id}/submit` that submits one of the session's client's draft cases.
+<!-- Feature name and short description -->
 
 ## Status
 
-In Progress
+<!-- Not Started / In Progress / Completed -->
 
 ## Goals
 
-- `POST /api/v1/cases/{id}/submit` (no body) submits the session's client's draft and returns 200 with the updated case: `{ id, title, categoryId, description, location, status, createdAt, updatedAt, submittedAt }`.
-- Only `DRAFT` cases can be submitted; submitted and closed cases get 409 `INVALID_CASE_STATE`.
-- Another client's, soft-deleted and nonexistent cases get 404 `CASE_NOT_FOUND`.
-- Submission requires title (required, ≤200), an active legal category, non-blank description, and non-blank location (≤255); incomplete cases or unknown/inactive categories get 400 `VALIDATION_ERROR` with `fieldErrors`.
-- Success sets status `SUBMITTED`, sets `submitted_at`, refreshes `updated_at`, and leaves `created_at` unchanged.
-- Failed submissions leave the case unchanged.
-- Concurrent requests can't submit the same case more than once.
-- Non-UUID IDs get 400, unauthenticated/suspended accounts 401, missing/invalid CSRF 403; all errors are Problem Details.
-- Integration tests cover every case in the spec's Testing section, including concurrency.
+<!-- Goals and requirements -->
 
 ## Notes
 
-- Spec: `context/epics/03-case-management/stories/CASE-07-submit-case/tasks/CASE-07-01-submit-case-api.md`.
-- `cases.submitted_at` already exists (V4) and is mapped on `LegalCase.submittedAt`; `CaseResponse` needs a `submittedAt` field (affects create/get/update responses too).
-- Follow Update/Delete Draft patterns: `CaseController` → `CaseService`, ownership via `LegalCaseRepository.findByIdAndClientIdAndDeletedAtIsNull`, `CaseNotFoundException`, `InvalidCaseStateException`, `FieldValidationException`, `saveAndFlush` so `@PreUpdate` refreshes `updatedAt`.
-- Check order: 404 → 409 → 400 field errors (the case's stored data is what's validated).
-- Concurrency: needs a row lock (e.g. `PESSIMISTIC_WRITE` on the lookup) or a conditional update/optimistic version so a second request sees `SUBMITTED` and gets 409.
-- Validation messages/limits should match Create Draft (`CreateCaseRequest`) where they overlap.
+<!-- Any extra notes -->
 
 ## History
 
@@ -60,3 +47,4 @@ In Progress
 - **CASE-03-02: My Cases Page** (2026-10-20) — `MyCasesPage` on `/cases` loads the client's cases via `fetchCases()` (`api/cases.ts`, `CaseSummary`/`CaseListResponse` types, unwraps `content`) and `useCases` (same loading/error/`retry` shape as `useLegalCategories`); desktop (`md`+) shows an antd `Table` (title link, category, status, created date as "Oct 18, 2026" via `Intl.DateTimeFormat('en-US')`, newest first as returned) whose rows navigate to `caseDetailsPath(id)` (title link stops propagation to avoid a double navigation); mobile shows a vertical stack of linked `Card`s (antd `List` is deprecated in antd 6); loading `Spin` "Loading cases…", error `Alert` with Retry, `Empty` "You don't have any cases yet." with Create Case; reusable `CaseStatusTag` (Draft/Submitted/Closed); `MyCasesPage` RTL + MSW tests (desktop via a `matchMedia` override); `RequireAuth` tests mock `GET /cases`.
 - **CASE-04-02: Case Details Page** (2026-10-20) — `CaseDetailsPage` on `/cases/:id` loads the case via `fetchCase()`/`useCase` and shows title, `CaseStatusTag`, category name (resolved from `useLegalCategories`; "Unavailable" when not active), location, created/last-updated dates and description (missing optional fields "Not provided") in an antd `Descriptions` card (2 columns on `md`+, 1 on mobile); status actions: Draft Edit/Submit/Delete, Submitted Close, Closed none — Edit navigates to `editCasePath(id)`, Submit/Delete/Close render disabled until CASE-07-02/CASE-06-02/CASE-08-02; loading `Spin`, error `Alert` with Retry, shared `CaseNotFound` `Result` for 404/400 (also used by `EditCasePage`); `formatDate` moved to `utils/formatDate.ts` and `isCaseNotFound` to `api/cases.ts`; page keyed by ID; `CaseDetailsPage` RTL + MSW tests; backlog BKL-04 (Cancel on Edit Draft).
 - **CASE-06-02: Delete Draft UI** (2026-10-20) — Delete on draft Case Details (`DeleteCaseButton` in `components/`) opens an antd `Modal` "Delete this draft?" with Cancel/Delete; confirming sends `DELETE /api/v1/cases/{id}` via new `deleteNoContent` client helper (fresh CSRF token), `deleteCase()` (`api/cases.ts`) and `useDeleteCase` (in-flight ref guard, resolves `false` for ignored duplicates); Delete buttons show a spinner and the dialog can't be cancelled/dismissed while deleting; 204 shows "Draft deleted." and navigates to My Cases; 404 "This case no longer exists or you no longer have access to it.", 409 "Only draft cases can be deleted.", other failures "We couldn't delete this case. Please try again." toasts, staying on the page; 401 shows no toast and `RequireAuth` sends the client to login; `renderWithProviders` disables antd motion (jsdom never ends animations, so closed dialogs never hid); `CaseDetailsPage` delete tests; coding standard "Put stateful components in their own file".
+- **CASE-07-01: Submit Case API** (2026-10-20) — Authenticated, CSRF-protected `POST /api/v1/cases/{id}/submit` (`CaseController.submit` → `CaseService.submitDraft`) submits one of the session's client's drafts and returns 200 `CaseResponse`, which now includes `submittedAt` (also on create/get/update, `null` for drafts); check order: 404 `CASE_NOT_FOUND` (other client's/deleted/nonexistent) → 409 `INVALID_CASE_STATE` "Only draft cases can be submitted." (submitted/closed) → 400 `VALIDATION_ERROR` with every failing field at once (title required ≤200, active category — rechecked, so a since-deactivated category is rejected — description required, location required ≤255; messages match Create Draft); `LegalCase.submit` sets `SUBMITTED` and `submitted_at`, `@PreUpdate` refreshes `updated_at`, `created_at` kept; row locked during the check via `LegalCaseRepository.findLockedByIdAndClientIdAndDeletedAtIsNull` (`PESSIMISTIC_WRITE`, `FOR NO KEY UPDATE`), so concurrent submissions succeed only once; `FieldValidationException` takes a list of field errors; `SubmitCaseIntegrationTest` (rows unchanged on every rejection, 5 concurrent submits → one 200).

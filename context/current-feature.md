@@ -1,29 +1,18 @@
-# Current Feature: CASE-10-01 Filter Cases API
+# Current Feature
 
-Allow authenticated clients to filter their own cases by status on `GET /api/v1/cases`.
+<!-- Feature name and short description -->
 
 ## Status
 
-In Progress
+<!-- Not Started / In Progress / Completed -->
 
 ## Goals
 
-- `GET /api/v1/cases?status=` accepts `DRAFT`, `SUBMITTED` or `CLOSED`; combines with `page`/`size` (e.g. `?status=SUBMITTED&page=0&size=10`).
-- Status filter applied before pagination; page metadata (`totalElements`, `totalPages`) reflects filtered results.
-- Omitting `status` returns all statuses.
-- Only the authenticated client's cases; soft-deleted cases excluded.
-- No matches returns empty `content`.
-- Invalid status values rejected with 400 `VALIDATION_ERROR` in standard Problem Details format.
-- 401 for unauthenticated requests.
-- Integration tests: filter by each status, filter + pagination, omitted status, no matches, invalid status 400, other clients' cases excluded, unauthenticated 401.
+<!-- Goals and requirements -->
 
 ## Notes
 
-- Type: BE. Story: CASE-10 – Filter Cases.
-- Builds on CASE-03-01 (List My Cases API) and CASE-09-01 (Paginate Cases API): keep the `createdAt` desc, `id` desc sort and the category `@EntityGraph`.
-- Response shape stays `{ content, page: { size, number, totalElements, totalPages } }` (spec example omits `page`).
-- Errors: 400 invalid status, 401 unauthorized, 500 internal error.
-- Done when all ACs are met and backend tests pass.
+<!-- Any extra notes -->
 
 ## History
 
@@ -64,3 +53,4 @@ In Progress
 - **CASE-08-02: Close Case UI** (2026-10-20) — Close Case on submitted Case Details (`CloseCaseButton` in `components/`) opens an antd `Modal` "Close this case?" with Cancel/Close Case; confirming sends `POST /api/v1/cases/{id}/close` via `postForJson`, `closeCase()` (`api/cases.ts`) and `useCloseCase` (in-flight ref guard, resolves `undefined` for ignored duplicates); dialog locked and button loading while closing; 200 shows "Case closed." and updates the page in place via `useCase.replace` (Closed status, "Closed on" date in the details card, no actions); 409 "This case has already been closed." and 404 "This case no longer exists…" toasts then reload the case, other failures "We couldn't close this case. Please try again." with the case unchanged, 401 goes to login; `LegalCase` gains `closedAt`; `CaseDetailsPage` close tests.
 - **CASE-09-01: Paginate Cases API** (2026-10-20) — `GET /api/v1/cases` takes zero-based `page` (default 0) and `size` (default 10, max 100) and returns `{ content, page: { size, number, totalElements, totalPages } }` (`CaseListResponse.PageMetadata`); `CaseService.listCases` builds a `PageRequest` sorted `createdAt` desc then `id` desc, so pages never overlap or skip cases created at the same instant; `LegalCaseRepository.findByClientIdAndDeletedAtIsNull(clientId, Pageable)` keeps the category `@EntityGraph` and excludes deleted and other clients' cases; pages past the last one return empty `content` with the real totals; negative `page` and `size` outside 1–100 are rejected (not clamped) with 400 `VALIDATION_ERROR` and `fieldErrors` ("Page must be 0 or greater", "Size must be between 1 and 100") via a new `HandlerMethodValidationException` handler in `ApiExceptionHandler`, non-integer values get the existing "Parameter '…' has an invalid value." 400; `ListCasesIntegrationTest` pagination tests.
 - **CASE-09-02: Pagination UI** (2026-10-20) — `MyCasesPage` fetches `GET /api/v1/cases?page={page}&size={size}` (page 0, size 10 to start) via `fetchCases({ page, size })` (`api/cases.ts`, returns `content` plus `PageMetadata`) and `useCases({ page, size })` (loading derived from a request key, last page kept while the next loads); `CasePagination` (`components/`) below the table/cards shows "Page X of Y · N cases", antd `Pagination` (previous/next disabled at the ends, `small`/`showLessItems` on mobile) and its own page-size `Select` (10/20/50, "Cases per page"), since antd's built-in size changer is hidden below `sm` by its CSS; changing the size resets to the first page; first load shows the full `Spin`, later pages keep the current cases under a spinner with controls disabled; failed loads show the error `Alert` and Retry reloads the same page; a page past the end (cases deleted elsewhere) moves back to the last page; no controls on the empty state; page not kept in the URL, so returning from a case starts at page 1; `MyCasesPage` pagination tests, `RequireAuth` mocks include page metadata; backlog BKL-05 (Sort Cases).
+- **CASE-10-01: Filter Cases API** (2026-10-20) — `GET /api/v1/cases` takes an optional `status` (`DRAFT`, `SUBMITTED`, `CLOSED`) that combines with `page`/`size`; `CaseService.listCases(userId, status, page, size)` uses `LegalCaseRepository.findByClientIdAndStatusAndDeletedAtIsNull` (category `@EntityGraph`) when given, so the filter applies before paging and page metadata counts matching cases only; omitted status returns every status; ownership, soft deletion and `createdAt` desc/`id` desc order unchanged; no matches return empty `content` with zero totals; unknown values (case-sensitive, so `submitted` too) get 400 `VALIDATION_ERROR` "Parameter 'status' has an invalid value." via the existing `MethodArgumentTypeMismatchException` handler; `ListCasesIntegrationTest` status filter tests.

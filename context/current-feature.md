@@ -1,18 +1,26 @@
-# Current Feature
+# Current Feature: DASH-02-01: Recent Cases UI
 
-<!-- Feature name and short description -->
+Display recent cases on the client dashboard using the Dashboard Summary API.
 
 ## Status
 
-<!-- Not Started / In Progress / Completed -->
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- Display the 5 most recent cases, newest first.
+- Show case title, status, and creation date.
+- Navigate to `/cases/:id` when a case is clicked.
+- Display an empty state when no cases exist.
+- Show loading and error states.
+- Ensure the UI is responsive on desktop and mobile.
+- Reuse the dashboard summary data from `DASH-01-02` to avoid duplicate API requests.
 
 ## Notes
 
-<!-- Any extra notes -->
+- Spec: `context/epics/04-client-dashboard/stories/DASH-02-recent-cases/tasks/DASH-02-01-recent-cases-ui.md`.
+- Data comes from `useDashboardSummary` (query key `['dashboard', 'summary']`, `recentCases: [{ id, title, status, createdAt }]`), already used by `CaseStatistics` on `DashboardPage`; the API returns the 5 newest in order, so no client-side sorting or second request.
+- Reuse `CaseStatusTag`, `formatDate` (`utils/formatDate.ts`) and `caseDetailsPath(id)`; follow the `MyCasesPage` table/cards pattern for desktop vs mobile.
 
 ## History
 

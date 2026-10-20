@@ -1,33 +1,18 @@
-# Current Feature: DASH-01-01: Dashboard Summary API
+# Current Feature
 
-Create an API to retrieve case statistics and recent cases for the logged-in client.
+<!-- Feature name and short description -->
 
 ## Status
 
-In Progress
+<!-- Not Started / In Progress / Completed -->
 
 ## Goals
 
-- `GET /api/v1/dashboard/summary` returns `total`, `draft`, `submitted`, and `closed` case counts under `statistics`.
-- Returns the 5 most recent cases under `recentCases` (`id`, `title`, `status`, `createdAt`), newest first.
-- Includes only the authenticated client's non-deleted cases.
-- Returns zero counts and an empty `recentCases` list when no cases exist.
-- Rejects unauthenticated requests with 401 `UNAUTHORIZED`.
+<!-- Goals and requirements -->
 
 ## Notes
 
-- Spec: `context/epics/04-client-dashboard/stories/DASH-01-case-statistics/tasks/DASH-01-01-dashboard-summary-api.md`.
-- Response shape:
-  ```json
-  {
-    "statistics": { "total": 12, "draft": 3, "submitted": 7, "closed": 2 },
-    "recentCases": [
-      { "id": "550e8400-…", "title": "Property Dispute", "status": "SUBMITTED", "createdAt": "2026-10-15T08:00:00Z" }
-    ]
-  }
-  ```
-- Errors: `401 UNAUTHORIZED` — missing or expired session.
-- Reuse existing patterns: ownership + soft deletion like `LegalCaseSpecifications.visibleTo`, `createdAt` desc then `id` desc ordering like the cases list, suspended/disabled/deleted accounts get 401, new `ApiTags` tag for OpenAPI grouping.
+<!-- Any extra notes -->
 
 ## History
 
@@ -72,3 +57,4 @@ In Progress
 - **CASE-10-02: Filter Cases UI** (2026-10-20) — `CaseStatusFilter` (`components/`, antd `Select` "Filter by status", full width on mobile) above the cases on `/cases` offers All Statuses/Draft/Submitted/Closed (labels match `CaseStatusTag`; "All Statuses" is an `ALL` sentinel since antd's `Select` can't hold `undefined`); `fetchCases`/`useCases` take an optional `status` (`CaseListRequest` extends `PageRequest`), sent as `status=` only when selected and part of the `useCases` request key; `MyCasesPage` keeps page, size and status in one request state, so the filter persists across page and page-size changes and a new filter returns to page 1 keeping the size; filtered results with no matches show `Empty` "No {status} cases found." with Show All Statuses and the filter still visible (a spinner while the next filter loads instead of the previous filter's empty state); clients with no cases at all keep "You don't have any cases yet." without the filter; the filter stays visible on load errors and Retry reloads with the same filter; filter not kept in the URL; `MyCasesPage` status filter tests.
 - **CASE-11-01: Search Cases API** (2026-10-20) — `GET /api/v1/cases` takes an optional `search` matching case titles partially and case-insensitively (`lower(title) like`), combining with `status`/`page`/`size`; filters apply before paging, so page metadata counts matching cases only; blank or omitted `search` returns every case, surrounding whitespace ignored; `%`, `_` and `\` match literally (Spring Data `EscapeCharacter`); `CaseService.listCases(userId, status, search, page, size)` builds the query from `LegalCaseSpecifications` (`visibleTo` ownership + soft deletion, `hasStatus`, `titleContains`) via `JpaSpecificationExecutor`, replacing the per-filter derived queries; `LegalCaseRepository.findAll(Specification, Pageable)` keeps the category `@EntityGraph`; `createdAt` desc/`id` desc order unchanged; no search length limit; `ListCasesIntegrationTest` search tests.
 - **CASE-11-02: Search Cases UI** (2026-10-20) — `CaseSearchInput` (`components/`, antd `Input` "Search cases by title" with search icon and clear button, full width on mobile) beside `CaseStatusFilter` above the cases on `/cases`; `fetchCases`/`useCases` take an optional `search` (`CaseListRequest`), sent as `search=` only when non-blank and part of the `useCases` request key (now `JSON.stringify`'d so searches containing separators can't collide); new `useDebouncedValue` hook delays the trimmed search by 300 ms, so typing sends one request, while clearing restores all cases immediately; `MyCasesPage` adds the search to its request state (adjusted while rendering), returning to page 1 with the size and status kept, and page, page-size and status changes keep the search; no matches show `Empty` `No cases match "…".` (or `No {status} cases match "…".`) with Clear Search and, when filtered by status, Show All Statuses; error `Alert` keeps the search and Retry repeats it; clients with no cases at all keep "You don't have any cases yet." without search or filter; search not kept in the URL; `MyCasesPage` search tests.
+- **DASH-01-01: Dashboard Summary API** (2026-10-20) — Authenticated `GET /api/v1/dashboard/summary` (`DashboardController` → `DashboardService`, read-only transaction, new `dashboard` package and `Dashboard` OpenAPI tag) returns `{ statistics: { total, draft, submitted, closed }, recentCases: [{ id, title, status, createdAt }] }` (`DashboardSummaryResponse`) for the session's client's non-deleted cases; counts come from one grouped JPQL query (`LegalCaseRepository.countByStatus`, `StatusCount` projection), statuses without cases count as zero and `total` is their sum; recent cases are the 5 newest (`findTop5ByClientIdAndDeletedAtIsNullOrderByCreatedAtDescIdDesc`, ties by `id` desc like the cases list); zero counts and `recentCases: []` when none; unauthenticated requests and suspended/disabled/deleted accounts get 401 via new `ClientProfileRepository.findActiveByUserId`, now also used by `CaseService`; `DashboardSummaryIntegrationTest`.

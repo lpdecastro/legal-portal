@@ -29,11 +29,30 @@ export interface LegalCase {
   updatedAt: string
 }
 
+// One row of the client's case list; `category` is the category name.
+export interface CaseSummary {
+  id: string
+  title: string
+  category: string
+  status: CaseStatus
+  createdAt: string
+}
+
+export interface CaseListResponse {
+  content: CaseSummary[]
+}
+
 const casePath = (id: string): string => `/cases/${encodeURIComponent(id)}`
 
 // Creates a new draft case owned by the signed-in client (201).
 export function createCase(request: CreateCaseRequest): Promise<LegalCase> {
   return postJson<LegalCase>('/cases', request)
+}
+
+// Lists the signed-in client's cases in every status, newest first.
+export async function fetchCases(): Promise<CaseSummary[]> {
+  const { content } = await getJson<CaseListResponse>('/cases')
+  return content
 }
 
 // Loads one of the signed-in client's cases; other clients' and missing cases answer 404 CASE_NOT_FOUND.

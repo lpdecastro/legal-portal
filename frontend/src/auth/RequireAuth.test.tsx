@@ -44,8 +44,11 @@ describe('protected routes', () => {
     ['/cases/new', 'Create Draft Case'],
     ['/profile', 'Profile'],
   ])('lets a signed-in client open %s', async (path, title) => {
-    // The Create Draft page loads the legal categories.
-    server.use(http.get('*/api/v1/legal-categories', () => HttpResponse.json([])))
+    // My Cases loads the cases; Create Draft loads the legal categories.
+    server.use(
+      http.get('*/api/v1/cases', () => HttpResponse.json({ content: [] })),
+      http.get('*/api/v1/legal-categories', () => HttpResponse.json([])),
+    )
     renderWithProviders(<AppRoutes />, { initialEntries: [path], user: USER })
 
     expect(await screen.findByRole('heading', { name: title })).toBeInTheDocument()
@@ -65,6 +68,7 @@ describe('protected routes', () => {
       await delay(50)
       return HttpResponse.json(USER)
     })
+    server.use(http.get('*/api/v1/cases', () => HttpResponse.json({ content: [] })))
 
     renderAfterRefresh('/cases')
 

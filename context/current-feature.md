@@ -1,18 +1,28 @@
-# Current Feature
+# Current Feature: CASE-03-02 My Cases Page
 
-<!-- Feature name and short description -->
+Clients view their cases in a table on `/cases`.
 
 ## Status
 
-<!-- Not Started / In Progress / Completed -->
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- Fetch cases using `GET /api/v1/cases`.
+- Display case title, category, status, and creation date.
+- Clicking a case navigates to `/cases/:id`.
+- Show an empty state when no cases exist.
+- Show a loading indicator while fetching cases.
+- Show an error message with a retry option when fetching fails.
+- Support desktop and mobile layouts.
+- RTL + MSW tests: cases listed, click opens details, empty/loading/error states, retry reloads after an error.
 
 ## Notes
 
-<!-- Any extra notes -->
+- Type: FE. Story: CASE-03 – View My Cases. Depends on authentication and protected routes (done).
+- API (CASE-03-01): `GET /api/v1/cases` → `{ content: [{ id, title, category, status, createdAt }] }`, `category` is the category name, newest first, no pagination yet.
+- Reuse `api/client.ts`, `api/cases.ts` (`CaseStatus`), `caseDetailsPath(id)`, and the `useCase` loading/error/Retry patterns from `EditCasePage`.
+- Definition of Done: all ACs met, automated FE tests pass.
 
 ## History
 

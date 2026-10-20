@@ -1,28 +1,18 @@
-# Current Feature: PROF-01-03 View and Edit Profile UI
+# Current Feature
 
-Allow clients to view and update their profile through a single page.
+<!-- Feature name and short description -->
 
 ## Status
 
-In Progress
+<!-- Not Started / In Progress / Completed -->
 
 ## Goals
 
-- Display first name, last name, email, and phone number from the API.
-- Allow editing of first name, last name, and phone number.
-- Email is read-only.
-- Provide Save and Cancel actions.
-- Validate required fields and input lengths.
-- Show loading, success, and error states.
-- Prevent duplicate submissions.
-- Saved changes persist after page refresh.
-- Automated tests cover viewing, editing, validation, and API errors.
+<!-- Goals and requirements -->
 
 ## Notes
 
-- API: `GET /api/v1/clients/me` loads the profile; `PATCH /api/v1/clients/me` saves changes (PROF-01-01/02).
-- API rules (PROF-01-02): `{ firstName, lastName, email, phone }`; names required ≤100; phone optional ≤30 with digits, spaces, parentheses, hyphens and a leading `+`; explicit `null`/blank clears phone; email not updatable; 400 `VALIDATION_ERROR` with `fieldErrors`, 404 `PROFILE_NOT_FOUND`, 401, 403 CSRF.
-- Spec: `context/epics/05-profile-settings/stories/PROF-01-view-edit-profile/tasks/PROF-01-03-view-edit-profile-ui.md`.
+<!-- Any extra notes -->
 
 ## History
 
@@ -72,3 +62,4 @@ In Progress
 - **DASH-02-01: Recent Cases UI** (2026-10-20) — `DashboardPage` shows a Recent Cases card (`RecentCases` in `components/`, title "Recent Cases" with a View all link to My Cases) below the statistics with the 5 newest cases, newest first as returned by `GET /api/v1/dashboard/summary`; desktop (`md`+) shows an antd `Table` (title link, `CaseStatusTag`, created date via `formatDate`) whose rows open `caseDetailsPath(id)` (title link stops propagation), mobile a stack of linked `Card`s; reads the shared `useDashboardSummary` query, so the dashboard still makes one request; loading `Spin` "Loading recent cases…", error `Alert` "We couldn't load your recent cases." with Retry (a failed refresh keeps the last cases), `Empty` "You don't have any cases yet." with Create Case; `DashboardPage` recent cases tests (order, fields, desktop/mobile navigation, empty, loading, error/Retry, one request shared with the statistics).
 - **PROF-01-01: Get Client Profile API** (2026-10-20) — Authenticated `GET /api/v1/clients/me` (`ClientProfileController` → `ClientProfileService`, read-only transaction, `client` package, new `Profile` OpenAPI tag) returns the session's client's `{ firstName, lastName, email, phone }` (`ClientProfileResponse`; `phone` `null` until set) with no IDs, password hash, status or role; unauthenticated requests and suspended/disabled/deleted accounts get 401 `UNAUTHORIZED`; an active account without a profile gets 404 `PROFILE_NOT_FOUND` "Profile not found." (`ProfileNotFoundException`, added to the error codes in `project-overview.md`); `ClientProfileIntegrationTest`; `LoginIntegrationTest` now expects 200 from `/clients/me`, which it had used as an unmapped protected path.
 - **PROF-01-02: Update Client Profile API** (2026-10-20) — Authenticated, CSRF-protected `PATCH /api/v1/clients/me` (`ClientProfileController.update` → `ClientProfileService.updateProfile`) updates the session's client's first name, last name and phone and returns 200 `ClientProfileResponse` `{ firstName, lastName, email, phone }`; `UpdateProfileRequest` follows `UpdateCaseRequest`'s partial-update semantics (omitted fields unchanged, explicit `null` or blank clears `phone`, names can't be cleared — 400 "… is required"), values trimmed; email isn't a request field, so it can't change (ignored if sent); names ≤100, phone ≤30 with digits, spaces, parentheses, hyphens and a leading `+` (400 `VALIDATION_ERROR` with `fieldErrors`); unauthenticated/suspended/disabled/deleted 401, missing profile 404 `PROFILE_NOT_FOUND`, missing/invalid CSRF 403; `ClientProfile.updateDetails`; `UpdateClientProfileIntegrationTest` (rows unchanged on every rejection).
+- **PROF-01-03: View and Edit Profile UI** (2026-10-21) — `ProfilePage` on `/profile` loads the client's profile via `fetchProfile()` (`api/profile.ts`, `ClientProfile`/`UpdateProfileRequest` types) and `useProfile` (TanStack Query, key `['profile']`); loading `Spin` "Loading profile…" (also during Retry), error `Alert` with Retry; `ProfileForm` (`components/`, keyed by the profile's values so a saved or reloaded profile resets it) edits first name, last name (required, whitespace-only rejected, ≤100) and phone (optional, ≤30, digits/spaces/parentheses/hyphens with a leading `+`, same pattern and messages as the API) with email shown read-only; Save sends `PATCH /api/v1/clients/me` via `updateProfile()` and `useUpdateProfile` with only changed fields, trimmed, a cleared phone as `null`; no changes shows "No changes to save." without a request; Cancel restores the loaded values and clears errors; form disabled and Save loading while saving, in-flight ref guard (resolves `undefined` for ignored duplicates); success shows "Profile updated.", updates the query cache and the signed-in client's name in auth state (profile menu); API `fieldErrors` under fields, other errors in an alert with values kept; new generic `useFormApiErrors(form, fields)` hook, `useCaseFormErrors` now wraps it; `ProfilePage` RTL + MSW tests (view, edit, cleared phone, no changes, cancel, validation, duplicate submit, API/network errors, load Retry, persistence after refresh, 401 → login); `docs/learning-notes.md` added.

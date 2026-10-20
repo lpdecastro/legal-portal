@@ -33,7 +33,7 @@ import com.liandrejohn.legalportal.TestcontainersConfiguration;
 import com.liandrejohn.legalportal.auth.RegisterRequest;
 import com.liandrejohn.legalportal.auth.RegistrationService;
 
-/** Cases are inserted directly, since submitting and closing have no API yet. */
+/** Cases are inserted directly, so each test controls their status, creation time and deletion. */
 @SpringBootTest
 @AutoConfigureMockMvc
 @Import(TestcontainersConfiguration.class)
@@ -250,6 +250,92 @@ class ListCasesIntegrationTest {
             .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
             .andExpect(jsonPath("$.errorCode").value("VALIDATION_ERROR"))
             .andExpect(jsonPath("$.detail").value("Parameter '%s' has an invalid value.".formatted(parameter)));
+    }
+
+    @ParameterizedTest
+    @CsvSource({ "DRAFT, Employment dispute", "SUBMITTED, Property dispute", "CLOSED, Unpaid wages" })
+    void filtersByStatus(String caseStatus, String title) throws Exception {
+        UUID clientId = clientProfileId(email);
+        insertCase(clientId, "Employment dispute", "DRAFT", "2026-10-13T08:00:00Z", false);
+        insertCase(clientId, "Property dispute", "SUBMITTED", "2026-10-15T08:00:00Z", false);
+        insertCase(clientId, "Unpaid wages", "CLOSED", "2026-10-14T08:00:00Z", false);
+
+        mockMvc.perform(get(CASES_PATH).param("status", caseStatus).cookie(login(email)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content", hasSize(1)))
+            .andExpect(jsonPath("$.content[0].title").value(title))
+            .andExpect(jsonPath("$.content[0].status").value(caseStatus))
+            .andExpect(jsonPath("$.page.totalElements").value(1))
+            .andExpect(jsonPath("$.page.totalPages").value(1));
+    }
+
+    @Test
+    void filtersBeforePaginating() throws Exception {
+        UUID clientId = clientProfileId(email);
+        for (int day = 1; day <= 10; day++) {
+            insertCase(clientId, "Case " + day, day % 2 == 0 ? "SUBMITTED" : "DRAFT",
+                    "2026-10-%02dT08:00:00Z".formatted(day), false);
+        }
+
+        mockMvc
+            .perform(get(CASES_PATH).param("status", "SUBMITTED")
+                .param("page", "1")
+                .param("size", "2")
+                .cookie(login(email)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content", hasSize(2)))
+            .andExpect(jsonPath("$.content[0].title").value("Case 6"))
+            .andExpect(jsonPath("$.content[1].title").value("Case 4"))
+            .andExpect(jsonPath("$.page.size").value(2))
+            .andExpect(jsonPath("$.page.number").value(1))
+            .andExpect(jsonPath("$.page.totalElements").value(5))
+            .andExpect(jsonPath("$.page.totalPages").value(3));
+    }
+
+    @Test
+    void statusFilterExcludesAnotherClientsAndSoftDeletedCases() throws Exception {
+        UUID clientId = clientProfileId(email);
+        UUID own = insertCase(clientId, "Property dispute", "SUBMITTED", "2026-10-15T08:00:00Z", false);
+        insertCase(clientId, "Deleted case", "SUBMITTED", "2026-10-16T08:00:00Z", true);
+        insertCase(clientProfileId(registerClient()), "Someone else's case", "SUBMITTED", "2026-10-17T08:00:00Z",
+                false);
+
+        mockMvc.perform(get(CASES_PATH).param("status", "SUBMITTED").cookie(login(email)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content", hasSize(1)))
+            .andExpect(jsonPath("$.content[0].id").value(own.toString()))
+            .andExpect(jsonPath("$.page.totalElements").value(1));
+    }
+
+    @Test
+    void returnsAnEmptyListWhenNoCasesMatchTheStatus() throws Exception {
+        insertCase(clientProfileId(email), "Employment dispute", "DRAFT", "2026-10-15T08:00:00Z", false);
+
+        mockMvc.perform(get(CASES_PATH).param("status", "CLOSED").cookie(login(email)))
+            .andExpect(status().isOk())
+            .andExpect(content().json("""
+                    {"content":[],"page":{"size":10,"number":0,"totalElements":0,"totalPages":0}}
+                    """, true));
+    }
+
+    @ParameterizedTest
+    @CsvSource({ "OPEN", "submitted", "1" })
+    void rejectsAnInvalidStatus(String value) throws Exception {
+        mockMvc.perform(get(CASES_PATH).param("status", value).cookie(login(email)))
+            .andExpect(status().isBadRequest())
+            .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+            .andExpect(jsonPath("$.status").value(400))
+            .andExpect(jsonPath("$.errorCode").value("VALIDATION_ERROR"))
+            .andExpect(jsonPath("$.detail").value("Parameter 'status' has an invalid value."))
+            .andExpect(jsonPath("$.timestamp").isNotEmpty())
+            .andExpect(jsonPath("$.traceId").isNotEmpty());
+    }
+
+    @Test
+    void unauthenticatedFilteredRequestIsRejected() throws Exception {
+        mockMvc.perform(get(CASES_PATH).param("status", "DRAFT"))
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.errorCode").value("UNAUTHORIZED"));
     }
 
     @Test

@@ -1,18 +1,29 @@
-# Current Feature
+# Current Feature: CASE-10-01 Filter Cases API
 
-<!-- Feature name and short description -->
+Allow authenticated clients to filter their own cases by status on `GET /api/v1/cases`.
 
 ## Status
 
-<!-- Not Started / In Progress / Completed -->
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- `GET /api/v1/cases?status=` accepts `DRAFT`, `SUBMITTED` or `CLOSED`; combines with `page`/`size` (e.g. `?status=SUBMITTED&page=0&size=10`).
+- Status filter applied before pagination; page metadata (`totalElements`, `totalPages`) reflects filtered results.
+- Omitting `status` returns all statuses.
+- Only the authenticated client's cases; soft-deleted cases excluded.
+- No matches returns empty `content`.
+- Invalid status values rejected with 400 `VALIDATION_ERROR` in standard Problem Details format.
+- 401 for unauthenticated requests.
+- Integration tests: filter by each status, filter + pagination, omitted status, no matches, invalid status 400, other clients' cases excluded, unauthenticated 401.
 
 ## Notes
 
-<!-- Any extra notes -->
+- Type: BE. Story: CASE-10 – Filter Cases.
+- Builds on CASE-03-01 (List My Cases API) and CASE-09-01 (Paginate Cases API): keep the `createdAt` desc, `id` desc sort and the category `@EntityGraph`.
+- Response shape stays `{ content, page: { size, number, totalElements, totalPages } }` (spec example omits `page`).
+- Errors: 400 invalid status, 401 unauthorized, 500 internal error.
+- Done when all ACs are met and backend tests pass.
 
 ## History
 

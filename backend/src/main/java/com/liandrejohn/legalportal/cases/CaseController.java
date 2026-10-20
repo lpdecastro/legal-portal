@@ -50,16 +50,18 @@ class CaseController {
     }
 
     /**
-     * Lists one zero-based page of the session's client's cases, newest first. Out-of-range {@code page} or
-     * {@code size} values are rejected with 400 rather than clamped.
+     * Lists one zero-based page of the session's client's cases, newest first, optionally only those in
+     * {@code status}. Unknown statuses and out-of-range {@code page} or {@code size} values are rejected with 400
+     * rather than clamped.
      */
     @GetMapping
     CaseListResponse list(@AuthenticationPrincipal AuthenticatedUser user,
+            @RequestParam(required = false) CaseStatus status,
             @RequestParam(defaultValue = "0") @Min(value = 0, message = "Page must be 0 or greater") int page,
             @RequestParam(defaultValue = DEFAULT_PAGE_SIZE)
             @Min(value = 1, message = "Size must be between 1 and " + MAX_PAGE_SIZE)
             @Max(value = MAX_PAGE_SIZE, message = "Size must be between 1 and " + MAX_PAGE_SIZE) int size) {
-        return caseService.listCases(user.getId(), page, size);
+        return caseService.listCases(user.getId(), status, page, size);
     }
 
     /** Returns one of the session's client's cases; any other case is answered with 404. */

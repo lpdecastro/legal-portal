@@ -6,6 +6,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
@@ -45,15 +46,19 @@ class CaseService {
     }
 
     /**
-     * Returns one zero-based page of the client's own non-deleted cases in any status, newest first; cases created at
-     * the same instant are ordered by ID so pages never overlap or skip a case. Pages past the last one are empty.
+     * Returns one zero-based page of the client's own non-deleted cases, newest first, in {@code status} or in any
+     * status when it is {@code null}; the filter applies before paging, so the page metadata counts matching cases
+     * only. Cases created at the same instant are ordered by ID so pages never overlap or skip a case. Pages past the
+     * last one are empty.
      */
     @Transactional(readOnly = true)
-    CaseListResponse listCases(UUID userId, int page, int size) {
+    CaseListResponse listCases(UUID userId, CaseStatus status, int page, int size) {
         ClientProfile client = findActiveClient(userId);
         PageRequest pageRequest = PageRequest.of(page, size, NEWEST_FIRST);
-        return CaseListResponse.from(legalCaseRepository.findByClientIdAndDeletedAtIsNull(client.getId(), pageRequest)
-            .map(CaseSummaryResponse::from));
+        Page<LegalCase> cases = status == null
+                ? legalCaseRepository.findByClientIdAndDeletedAtIsNull(client.getId(), pageRequest)
+                : legalCaseRepository.findByClientIdAndStatusAndDeletedAtIsNull(client.getId(), status, pageRequest);
+        return CaseListResponse.from(cases.map(CaseSummaryResponse::from));
     }
 
     /** Returns one of the client's own non-deleted cases, in any status. */

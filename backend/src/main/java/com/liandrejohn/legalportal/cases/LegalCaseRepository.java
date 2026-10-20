@@ -26,4 +26,8 @@ public interface LegalCaseRepository extends JpaRepository<LegalCase, UUID> {
     @EntityGraph(attributePaths = "category")
     Page<LegalCase> findByClientIdAndDeletedAtIsNull(UUID clientId, Pageable pageable);
 
+    /** Like {@link #findByClientIdAndDeletedAtIsNull}, limited to cases in {@code status}. */
+    @EntityGraph(attributePaths = "category")
+    Page<LegalCase> findByClientIdAndStatusAndDeletedAtIsNull(UUID clientId, CaseStatus status, Pageable pageable);
+
 }

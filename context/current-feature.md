@@ -1,30 +1,18 @@
-# Current Feature: CASE-08-02 Close Case UI
+# Current Feature
 
-Allow clients to close a submitted case from the Case Details page (`/cases/:id`).
+<!-- Feature name and short description -->
 
 ## Status
 
-In Progress
+<!-- Not Started / In Progress / Completed -->
 
 ## Goals
 
-- Show Close Case button only for `SUBMITTED` cases.
-- Show a confirmation dialog before closing.
-- Call `POST /api/v1/cases/{id}/close` upon confirmation.
-- Disable the action while the request is processing.
-- Update status to `CLOSED` and display the closure date.
-- Show a success message after closing.
-- Show an error message if the request fails.
-- Hide Close Case button after successful closure.
-- Support desktop and mobile layouts.
-- Tests: close after confirmation; cancel keeps case unchanged; updated status and closure date shown; failed requests show an error without changing status; draft and closed cases have no Close Case button.
+<!-- Goals and requirements -->
 
 ## Notes
 
-- Type: FE. Story: CASE-08 – Close Case. Depends on CASE-04-02 (Case Details Page), CASE-08-01 (Close Case API), auth/protected routes.
-- API returns 200 `CaseResponse` with `closedAt` (not the spec's `{ id, status, closedAt }`); add `closedAt` to `LegalCase`. Errors: 404 `CASE_NOT_FOUND`, 409 `INVALID_CASE_STATE` "Only submitted cases can be closed.", 401 → login.
-- Close button already renders disabled on submitted cases (CASE-04-02). Follow `SubmitCaseButton`/`DeleteCaseButton` patterns: own component file, `useCloseCase` hook with in-flight ref guard, `postForJson` + `closeCase()` in `api/cases.ts`, locked modal while closing, update page in place via `useCase.replace`.
-- Done when all ACs met and FE tests pass.
+<!-- Any extra notes -->
 
 ## History
 
@@ -62,3 +50,4 @@ In Progress
 - **CASE-07-01: Submit Case API** (2026-10-20) — Authenticated, CSRF-protected `POST /api/v1/cases/{id}/submit` (`CaseController.submit` → `CaseService.submitDraft`) submits one of the session's client's drafts and returns 200 `CaseResponse`, which now includes `submittedAt` (also on create/get/update, `null` for drafts); check order: 404 `CASE_NOT_FOUND` (other client's/deleted/nonexistent) → 409 `INVALID_CASE_STATE` "Only draft cases can be submitted." (submitted/closed) → 400 `VALIDATION_ERROR` with every failing field at once (title required ≤200, active category — rechecked, so a since-deactivated category is rejected — description required, location required ≤255; messages match Create Draft); `LegalCase.submit` sets `SUBMITTED` and `submitted_at`, `@PreUpdate` refreshes `updated_at`, `created_at` kept; row locked during the check via `LegalCaseRepository.findLockedByIdAndClientIdAndDeletedAtIsNull` (`PESSIMISTIC_WRITE`, `FOR NO KEY UPDATE`), so concurrent submissions succeed only once; `FieldValidationException` takes a list of field errors; `SubmitCaseIntegrationTest` (rows unchanged on every rejection, 5 concurrent submits → one 200).
 - **CASE-07-02: Submit Case UI** (2026-10-20) — Submit on draft Case Details (`SubmitCaseButton` in `components/`) first checks the draft client-side via `submissionErrors` (`utils/submissionErrors.ts`: title required ≤200, active category, description required, location required ≤255; messages match the API) and lists what's missing in an "This draft isn't ready to submit" dialog with Edit Draft, without calling the API; complete drafts get a "Submit this case?" confirmation with Cancel/Submit; confirming sends `POST /api/v1/cases/{id}/submit` via new `postForJson` client helper (fresh CSRF token), `submitCase()` (`api/cases.ts`) and `useSubmitCase` (in-flight ref guard, resolves `undefined` for ignored duplicates); dialog locked and button loading while submitting; 200 shows "Case submitted." and updates the page in place via new `useCase.replace` (Edit/Submit/Delete gone, Close shown); 400 lists the API's `fieldErrors` with Edit Draft, 409 "This case has already been submitted or closed." and 404 "This case no longer exists…" toasts then reload the case, other failures "We couldn't submit this case. Please try again.", 401 goes to login; one antd `Modal` for both steps (two modals shared an `aria-labelledby` id in tests); `CaseDetailsPage` loads categories once and shares them with the category name and the Submit check (Submit disabled while loading, API checks the category if loading failed); `LegalCase` gains `submittedAt`; `CaseDetailsPage` submit tests.
 - **CASE-08-01: Close Case API** (2026-10-20) — Authenticated, CSRF-protected `POST /api/v1/cases/{id}/close` (`CaseController.close` → `CaseService.closeCase`) closes one of the session's client's submitted cases and returns 200 `CaseResponse`, which now includes `closedAt` (also on create/get/update/submit, `null` until closed) instead of the spec's `{ id, status, closedAt }`; check order: 404 `CASE_NOT_FOUND` (other client's/deleted/nonexistent) → 409 `INVALID_CASE_STATE` "Only submitted cases can be closed." (draft/closed); `LegalCase.close` sets `CLOSED` and `closed_at`, `@PreUpdate` refreshes `updated_at`, `created_at`/`submitted_at` kept; row locked during the check via `findLockedByIdAndClientIdAndDeletedAtIsNull`, so concurrent closes succeed only once; non-UUID IDs 400, unauthenticated/suspended 401, missing/invalid CSRF 403; `CloseCaseIntegrationTest` (rows unchanged on every rejection, 5 concurrent closes → one 200).
+- **CASE-08-02: Close Case UI** (2026-10-20) — Close Case on submitted Case Details (`CloseCaseButton` in `components/`) opens an antd `Modal` "Close this case?" with Cancel/Close Case; confirming sends `POST /api/v1/cases/{id}/close` via `postForJson`, `closeCase()` (`api/cases.ts`) and `useCloseCase` (in-flight ref guard, resolves `undefined` for ignored duplicates); dialog locked and button loading while closing; 200 shows "Case closed." and updates the page in place via `useCase.replace` (Closed status, "Closed on" date in the details card, no actions); 409 "This case has already been closed." and 404 "This case no longer exists…" toasts then reload the case, other failures "We couldn't close this case. Please try again." with the case unchanged, 401 goes to login; `LegalCase` gains `closedAt`; `CaseDetailsPage` close tests.

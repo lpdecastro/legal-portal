@@ -1,31 +1,18 @@
-# Current Feature: CASE-10-02 Filter Cases UI
+# Current Feature
 
-Let clients filter their cases by status on the My Cases page (`/cases`).
+<!-- Feature name and short description -->
 
 ## Status
 
-In Progress
+<!-- Not Started / In Progress / Completed -->
 
 ## Goals
 
-- Status dropdown above the cases table with `All Statuses`, `DRAFT`, `SUBMITTED`, `CLOSED` options.
-- Cases fetched via `GET /api/v1/cases?status={status}`, combined with `page`/`size`.
-- Status filter preserved when changing pages.
-- Cases table updates when the filter changes.
-- Changing the filter resets pagination to the first page.
-- All Statuses removes the `status` param.
-- Empty state when no cases match.
-- Loading and error states.
-- Works on desktop and mobile layouts.
-- FE tests: filter by each status, filter persists across pages, All Statuses restores unfiltered results, filter change resets to page 1, no matches shows empty state, API errors show an error message.
+<!-- Goals and requirements -->
 
 ## Notes
 
-- Type: FE. Story: CASE-10 – Filter Cases.
-- Depends on CASE-03-02 (My Cases Page), CASE-09-02 (Pagination UI), CASE-10-01 (Filter Cases API), auth and protected routes.
-- API (CASE-10-01): optional `status` (`DRAFT`, `SUBMITTED`, `CLOSED`, case-sensitive); filter applies before paging, so page metadata counts matching cases only; no matches return empty `content` with zero totals; unknown values 400 `VALIDATION_ERROR`.
-- Existing: `MyCasesPage`, `fetchCases({ page, size })`, `useCases`, `CasePagination`; empty state currently "You don't have any cases yet." with no pagination controls — a filtered empty result needs its own message and should keep the filter visible.
-- Done when all ACs are met and automated FE tests pass.
+<!-- Any extra notes -->
 
 ## History
 
@@ -67,3 +54,4 @@ In Progress
 - **CASE-09-01: Paginate Cases API** (2026-10-20) — `GET /api/v1/cases` takes zero-based `page` (default 0) and `size` (default 10, max 100) and returns `{ content, page: { size, number, totalElements, totalPages } }` (`CaseListResponse.PageMetadata`); `CaseService.listCases` builds a `PageRequest` sorted `createdAt` desc then `id` desc, so pages never overlap or skip cases created at the same instant; `LegalCaseRepository.findByClientIdAndDeletedAtIsNull(clientId, Pageable)` keeps the category `@EntityGraph` and excludes deleted and other clients' cases; pages past the last one return empty `content` with the real totals; negative `page` and `size` outside 1–100 are rejected (not clamped) with 400 `VALIDATION_ERROR` and `fieldErrors` ("Page must be 0 or greater", "Size must be between 1 and 100") via a new `HandlerMethodValidationException` handler in `ApiExceptionHandler`, non-integer values get the existing "Parameter '…' has an invalid value." 400; `ListCasesIntegrationTest` pagination tests.
 - **CASE-09-02: Pagination UI** (2026-10-20) — `MyCasesPage` fetches `GET /api/v1/cases?page={page}&size={size}` (page 0, size 10 to start) via `fetchCases({ page, size })` (`api/cases.ts`, returns `content` plus `PageMetadata`) and `useCases({ page, size })` (loading derived from a request key, last page kept while the next loads); `CasePagination` (`components/`) below the table/cards shows "Page X of Y · N cases", antd `Pagination` (previous/next disabled at the ends, `small`/`showLessItems` on mobile) and its own page-size `Select` (10/20/50, "Cases per page"), since antd's built-in size changer is hidden below `sm` by its CSS; changing the size resets to the first page; first load shows the full `Spin`, later pages keep the current cases under a spinner with controls disabled; failed loads show the error `Alert` and Retry reloads the same page; a page past the end (cases deleted elsewhere) moves back to the last page; no controls on the empty state; page not kept in the URL, so returning from a case starts at page 1; `MyCasesPage` pagination tests, `RequireAuth` mocks include page metadata; backlog BKL-05 (Sort Cases).
 - **CASE-10-01: Filter Cases API** (2026-10-20) — `GET /api/v1/cases` takes an optional `status` (`DRAFT`, `SUBMITTED`, `CLOSED`) that combines with `page`/`size`; `CaseService.listCases(userId, status, page, size)` uses `LegalCaseRepository.findByClientIdAndStatusAndDeletedAtIsNull` (category `@EntityGraph`) when given, so the filter applies before paging and page metadata counts matching cases only; omitted status returns every status; ownership, soft deletion and `createdAt` desc/`id` desc order unchanged; no matches return empty `content` with zero totals; unknown values (case-sensitive, so `submitted` too) get 400 `VALIDATION_ERROR` "Parameter 'status' has an invalid value." via the existing `MethodArgumentTypeMismatchException` handler; `ListCasesIntegrationTest` status filter tests.
+- **CASE-10-02: Filter Cases UI** (2026-10-20) — `CaseStatusFilter` (`components/`, antd `Select` "Filter by status", full width on mobile) above the cases on `/cases` offers All Statuses/Draft/Submitted/Closed (labels match `CaseStatusTag`; "All Statuses" is an `ALL` sentinel since antd's `Select` can't hold `undefined`); `fetchCases`/`useCases` take an optional `status` (`CaseListRequest` extends `PageRequest`), sent as `status=` only when selected and part of the `useCases` request key; `MyCasesPage` keeps page, size and status in one request state, so the filter persists across page and page-size changes and a new filter returns to page 1 keeping the size; filtered results with no matches show `Empty` "No {status} cases found." with Show All Statuses and the filter still visible (a spinner while the next filter loads instead of the previous filter's empty state); clients with no cases at all keep "You don't have any cases yet." without the filter; the filter stays visible on load errors and Retry reloads with the same filter; filter not kept in the URL; `MyCasesPage` status filter tests.

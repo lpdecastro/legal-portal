@@ -1,8 +1,10 @@
 import { Alert, Button, Card, Empty, Flex, Grid, Spin, Table, Typography } from 'antd'
 import type { TableColumnsType } from 'antd'
 import { PlusOutlined } from '@ant-design/icons'
+import { useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 import type { CaseSummary } from '../api/cases'
+import CasePagination from '../components/CasePagination'
 import CaseStatusTag from '../components/CaseStatusTag'
 import { useCases } from '../hooks/useCases'
 import { caseDetailsPath, paths } from '../routes/paths'
@@ -26,10 +28,11 @@ const columns: TableColumnsType<CaseSummary> = [
 
 interface CaseListProps {
   cases: CaseSummary[]
+  loading: boolean
 }
 
 // Desktop: a table whose rows open the case.
-function CaseTable({ cases }: CaseListProps) {
+function CaseTable({ cases, loading }: CaseListProps) {
   const navigate = useNavigate()
 
   return (
@@ -37,6 +40,7 @@ function CaseTable({ cases }: CaseListProps) {
       rowKey="id"
       columns={columns}
       dataSource={cases}
+      loading={loading}
       pagination={false}
       onRow={({ id }) => ({ onClick: () => navigate(caseDetailsPath(id)), style: { cursor: 'pointer' } })}
     />
@@ -44,33 +48,44 @@ function CaseTable({ cases }: CaseListProps) {
 }
 
 // Mobile: one card per case, each a link to the case.
-function CaseCards({ cases }: CaseListProps) {
+function CaseCards({ cases, loading }: CaseListProps) {
   return (
-    <Flex vertical gap="small">
-      {cases.map((legalCase) => (
-        <Link key={legalCase.id} to={caseDetailsPath(legalCase.id)}>
-          <Card size="small" hoverable>
-            <Flex justify="space-between" align="start" gap="small">
-              <Typography.Text strong>{legalCase.title}</Typography.Text>
-              <CaseStatusTag status={legalCase.status} />
-            </Flex>
-            <Typography.Text type="secondary">
-              {legalCase.category} · {formatDate(legalCase.createdAt)}
-            </Typography.Text>
-          </Card>
-        </Link>
-      ))}
-    </Flex>
+    <Spin spinning={loading}>
+      <Flex vertical gap="small">
+        {cases.map((legalCase) => (
+          <Link key={legalCase.id} to={caseDetailsPath(legalCase.id)}>
+            <Card size="small" hoverable>
+              <Flex justify="space-between" align="start" gap="small">
+                <Typography.Text strong>{legalCase.title}</Typography.Text>
+                <CaseStatusTag status={legalCase.status} />
+              </Flex>
+              <Typography.Text type="secondary">
+                {legalCase.category} · {formatDate(legalCase.createdAt)}
+              </Typography.Text>
+            </Card>
+          </Link>
+        ))}
+      </Flex>
+    </Spin>
   )
 }
 
+const DEFAULT_PAGE_SIZE = 10
+
 function MyCasesContent() {
-  const { cases, loading, error, retry } = useCases()
+  const [pageRequest, setPageRequest] = useState({ page: 0, size: DEFAULT_PAGE_SIZE })
+  const { data, loading, error, retry } = useCases(pageRequest)
   const screens = Grid.useBreakpoint()
   const isDesktop = screens.md ?? true
   const navigate = useNavigate()
 
-  if (loading) {
+  // A page past the end (e.g. its last case was deleted elsewhere) moves back to the last page.
+  // Adjusted while rendering, as React recommends for state derived from a response.
+  if (!loading && data && data.content.length === 0 && data.page.number > 0 && data.page.totalPages > 0) {
+    setPageRequest({ page: data.page.totalPages - 1, size: data.page.size })
+  }
+
+  if (!data && loading) {
     return (
       <Flex justify="center" style={{ padding: 48 }}>
         <Spin size="large" description="Loading cases…" />
@@ -95,7 +110,9 @@ function MyCasesContent() {
     )
   }
 
-  if (cases.length === 0) {
+  if (!data) return null
+
+  if (data.page.totalElements === 0) {
     return (
       <Empty description="You don't have any cases yet." style={{ padding: 48 }}>
         <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate(paths.createCase)}>
@@ -105,7 +122,21 @@ function MyCasesContent() {
     )
   }
 
-  return isDesktop ? <CaseTable cases={cases} /> : <CaseCards cases={cases} />
+  return (
+    <>
+      {isDesktop ? (
+        <CaseTable cases={data.content} loading={loading} />
+      ) : (
+        <CaseCards cases={data.content} loading={loading} />
+      )}
+      <CasePagination
+        page={data.page}
+        disabled={loading}
+        compact={!isDesktop}
+        onChange={(page, size) => setPageRequest({ page, size })}
+      />
+    </>
+  )
 }
 
 function MyCasesPage() {

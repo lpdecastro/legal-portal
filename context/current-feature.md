@@ -1,18 +1,29 @@
-# Current Feature
+# Current Feature: CASE-09-02 Pagination UI
 
-<!-- Feature name and short description -->
+Let clients page through their cases on the My Cases page (`/cases`).
 
 ## Status
 
-<!-- Not Started / In Progress / Completed -->
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- Pagination controls shown below the cases table.
+- Cases fetched via `GET /api/v1/cases?page={page}&size={size}`.
+- Show current page, total pages, and total cases.
+- Navigate between pages.
+- Page size selectable (10, 20, 50); changing it resets to the first page.
+- Previous/next navigation disabled when no such page exists.
+- Loading and error states.
+- Works on desktop and mobile layouts.
+- FE tests: navigating pages, page size changes the displayed cases and resets pagination, controls reflect API metadata, API errors show an error message.
 
 ## Notes
 
-<!-- Any extra notes -->
+- Type: FE. Story: CASE-09 – Paginate Cases.
+- Depends on CASE-03-02 (My Cases Page), CASE-09-01 (Paginate Cases API), auth and protected routes.
+- API (CASE-09-01): zero-based `page` (default 0), `size` (default 10, max 100); response `{ content, page: { size, number, totalElements, totalPages } }`; pages past the last return empty `content` with real totals.
+- Done when all ACs are met and automated FE tests pass.
 
 ## History
 

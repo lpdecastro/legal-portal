@@ -42,8 +42,23 @@ export interface CaseSummary {
   createdAt: string
 }
 
+// Zero-based page number and page size, as the cases API expects.
+export interface PageRequest {
+  page: number
+  size: number
+}
+
+// Where a page sits in the full list; `number` is zero-based.
+export interface PageMetadata {
+  size: number
+  number: number
+  totalElements: number
+  totalPages: number
+}
+
 export interface CaseListResponse {
   content: CaseSummary[]
+  page: PageMetadata
 }
 
 const casePath = (id: string): string => `/cases/${encodeURIComponent(id)}`
@@ -53,10 +68,10 @@ export function createCase(request: CreateCaseRequest): Promise<LegalCase> {
   return postJson<LegalCase>('/cases', request)
 }
 
-// Lists the signed-in client's cases in every status, newest first.
-export async function fetchCases(): Promise<CaseSummary[]> {
-  const { content } = await getJson<CaseListResponse>('/cases')
-  return content
+// Lists one page of the signed-in client's cases in every status, newest first.
+export function fetchCases({ page, size }: PageRequest): Promise<CaseListResponse> {
+  const query = new URLSearchParams({ page: String(page), size: String(size) })
+  return getJson<CaseListResponse>(`/cases?${query}`)
 }
 
 // Loads one of the signed-in client's cases; other clients' and missing cases answer 404 CASE_NOT_FOUND.

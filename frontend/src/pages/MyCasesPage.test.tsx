@@ -27,6 +27,39 @@ const CASES = [
   },
 ]
 
+// A page of the cases API response; totals default to a single page holding `content`.
+function casePage(content: typeof CASES, page: Partial<{ size: number; number: number; totalElements: number }> = {}) {
+  const size = page.size ?? 10
+  const totalElements = page.totalElements ?? content.length
+  return HttpResponse.json({
+    content,
+    page: { size, number: page.number ?? 0, totalElements, totalPages: Math.ceil(totalElements / size) },
+  })
+}
+
+// `count` cases titled "Case 1"…"Case N", newest first.
+const manyCases = (count: number) =>
+  Array.from({ length: count }, (_, index) => ({
+    id: `case-${index + 1}`,
+    title: `Case ${index + 1}`,
+    category: 'Family Law',
+    status: 'DRAFT',
+    createdAt: '2026-10-17T12:00:00Z',
+  }))
+
+// Serves `all` cases page by page, honouring the `page` and `size` query parameters, and records each request.
+function servePages(all: typeof CASES) {
+  const requests: { page: number; size: number }[] = []
+  listCases(({ request }) => {
+    const params = new URL(request.url).searchParams
+    const page = Number(params.get('page'))
+    const size = Number(params.get('size'))
+    requests.push({ page, size })
+    return casePage(all.slice(page * size, (page + 1) * size), { size, number: page, totalElements: all.length })
+  })
+  return requests
+}
+
 const listCases = (resolver: Parameters<typeof http.get>[1]) => server.use(http.get('*/api/v1/cases', resolver))
 
 const serverError = () =>
@@ -70,7 +103,7 @@ describe('MyCasesPage', () => {
   it('shows a loading indicator while the cases load', async () => {
     listCases(async () => {
       await delay('infinite')
-      return HttpResponse.json({ content: [] })
+      return casePage([])
     })
 
     renderPage()
@@ -80,7 +113,7 @@ describe('MyCasesPage', () => {
 
   it("shows the client's cases in a table on desktop", async () => {
     mockDesktopScreen()
-    listCases(() => HttpResponse.json({ content: CASES }))
+    listCases(() => casePage(CASES))
 
     renderPage()
 
@@ -101,7 +134,7 @@ describe('MyCasesPage', () => {
 
   it('opens the case details page when a table row is clicked', async () => {
     mockDesktopScreen()
-    listCases(() => HttpResponse.json({ content: CASES }))
+    listCases(() => casePage(CASES))
     renderPage()
 
     await userEvent.click(await screen.findByText('Family Law'))
@@ -110,7 +143,7 @@ describe('MyCasesPage', () => {
   })
 
   it('shows the cases as linked cards on mobile and opens a case when one is clicked', async () => {
-    listCases(() => HttpResponse.json({ content: CASES }))
+    listCases(() => casePage(CASES))
     renderPage()
 
     const card = await screen.findByRole('link', { name: /custody dispute/i })
@@ -125,7 +158,7 @@ describe('MyCasesPage', () => {
   })
 
   it('shows an empty state with a way to create a case when there are none', async () => {
-    listCases(() => HttpResponse.json({ content: [] }))
+    listCases(() => casePage([]))
     renderPage()
 
     expect(await screen.findByText("You don't have any cases yet.")).toBeInTheDocument()
@@ -139,7 +172,7 @@ describe('MyCasesPage', () => {
     let calls = 0
     listCases(() => {
       calls += 1
-      return calls === 1 ? serverError() : HttpResponse.json({ content: CASES })
+      return calls === 1 ? serverError() : casePage(CASES)
     })
     renderPage()
 
@@ -158,5 +191,164 @@ describe('MyCasesPage', () => {
 
     expect(await screen.findByText("We couldn't load your cases.")).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument()
+  })
+
+  describe('pagination', () => {
+    it('requests the first page of 10 cases and shows the page summary from the API', async () => {
+      const requests = servePages(manyCases(25))
+      renderPage()
+
+      expect(await screen.findByText('Page 1 of 3 · 25 cases')).toBeInTheDocument()
+      expect(screen.getByRole('link', { name: /^case 1\b/i })).toBeInTheDocument()
+      expect(screen.getByRole('link', { name: /^case 10\b/i })).toBeInTheDocument()
+      expect(screen.queryByRole('link', { name: /^case 11\b/i })).not.toBeInTheDocument()
+      expect(screen.getByTitle('3')).toBeInTheDocument()
+      expect(screen.queryByTitle('4')).not.toBeInTheDocument()
+      expect(requests).toEqual([{ page: 0, size: 10 }])
+    })
+
+    it('moves between pages and disables previous/next at the ends', async () => {
+      const requests = servePages(manyCases(25))
+      renderPage()
+
+      await screen.findByText('Page 1 of 3 · 25 cases')
+      expect(screen.getByTitle('Previous Page')).toHaveAttribute('aria-disabled', 'true')
+      expect(screen.getByTitle('Next Page')).toHaveAttribute('aria-disabled', 'false')
+
+      await userEvent.click(screen.getByTitle('Next Page'))
+      expect(await screen.findByText('Page 2 of 3 · 25 cases')).toBeInTheDocument()
+      expect(screen.getByRole('link', { name: /^case 11\b/i })).toBeInTheDocument()
+      expect(screen.queryByRole('link', { name: /^case 1\b/i })).not.toBeInTheDocument()
+      expect(screen.getByTitle('Previous Page')).toHaveAttribute('aria-disabled', 'false')
+
+      await userEvent.click(screen.getByTitle('3'))
+      expect(await screen.findByText('Page 3 of 3 · 25 cases')).toBeInTheDocument()
+      expect(screen.getByRole('link', { name: /^case 25\b/i })).toBeInTheDocument()
+      expect(screen.getByTitle('Next Page')).toHaveAttribute('aria-disabled', 'true')
+
+      await userEvent.click(screen.getByTitle('Previous Page'))
+      expect(await screen.findByText('Page 2 of 3 · 25 cases')).toBeInTheDocument()
+
+      expect(requests.map(({ page }) => page)).toEqual([0, 1, 2, 1])
+    })
+
+    it('disables previous and next when there is only one page', async () => {
+      listCases(() => casePage(CASES))
+      renderPage()
+
+      expect(await screen.findByText('Page 1 of 1 · 2 cases')).toBeInTheDocument()
+      expect(screen.getByTitle('Previous Page')).toHaveAttribute('aria-disabled', 'true')
+      expect(screen.getByTitle('Next Page')).toHaveAttribute('aria-disabled', 'true')
+    })
+
+    it('changes the page size, showing more cases and going back to the first page', async () => {
+      const requests = servePages(manyCases(45))
+      renderPage()
+
+      await screen.findByText('Page 1 of 5 · 45 cases')
+      await userEvent.click(screen.getByTitle('3'))
+      await screen.findByText('Page 3 of 5 · 45 cases')
+
+      await userEvent.click(screen.getByRole('combobox', { name: 'Cases per page' }))
+      await userEvent.click(await screen.findByText('20 / page'))
+
+      expect(await screen.findByText('Page 1 of 3 · 45 cases')).toBeInTheDocument()
+      expect(screen.getByRole('link', { name: /^case 1\b/i })).toBeInTheDocument()
+      expect(screen.getByRole('link', { name: /^case 20\b/i })).toBeInTheDocument()
+      expect(screen.queryByRole('link', { name: /^case 21\b/i })).not.toBeInTheDocument()
+      expect(requests.at(-1)).toEqual({ page: 0, size: 20 })
+    })
+
+    it('offers page sizes of 10, 20 and 50', async () => {
+      servePages(manyCases(25))
+      renderPage()
+
+      await screen.findByText('Page 1 of 3 · 25 cases')
+      await userEvent.click(screen.getByRole('combobox', { name: 'Cases per page' }))
+
+      // antd's hidden accessible listbox only lists raw values, so read the visible dropdown items.
+      await screen.findByText('50 / page')
+      const options = document.querySelectorAll('.ant-select-item-option')
+      expect([...options].map((option) => option.textContent)).toEqual(['10 / page', '20 / page', '50 / page'])
+    })
+
+    it('keeps the current cases and disables the controls while the next page loads', async () => {
+      const all = manyCases(25)
+      const requests: number[] = []
+      listCases(async ({ request }) => {
+        const page = Number(new URL(request.url).searchParams.get('page'))
+        requests.push(page)
+        if (page > 0) await delay('infinite')
+        return casePage(all.slice(0, 10), { totalElements: 25 })
+      })
+      renderPage()
+
+      await screen.findByText('Page 1 of 3 · 25 cases')
+      await userEvent.click(screen.getByTitle('Next Page'))
+
+      expect(screen.getByRole('link', { name: /^case 1\b/i })).toBeInTheDocument()
+      // antd marks the whole control disabled; its items' aria-disabled only reflects whether a page exists.
+      expect(screen.getByTitle('2').closest('ul')).toHaveClass('ant-pagination-disabled')
+      await userEvent.click(screen.getByTitle('3'))
+      expect(requests).toEqual([0, 1])
+    })
+
+    it('shows an error when a page fails to load and retries that page', async () => {
+      const all = manyCases(25)
+      const pages: number[] = []
+      listCases(({ request }) => {
+        const page = Number(new URL(request.url).searchParams.get('page'))
+        pages.push(page)
+        if (page === 1 && pages.filter((requested) => requested === 1).length === 1) return serverError()
+        return casePage(all.slice(page * 10, page * 10 + 10), { number: page, totalElements: 25 })
+      })
+      renderPage()
+
+      await screen.findByText('Page 1 of 3 · 25 cases')
+      await userEvent.click(screen.getByTitle('Next Page'))
+
+      expect(await screen.findByText("We couldn't load your cases.")).toBeInTheDocument()
+
+      await userEvent.click(screen.getByRole('button', { name: 'Retry' }))
+
+      expect(await screen.findByText('Page 2 of 3 · 25 cases')).toBeInTheDocument()
+      expect(pages).toEqual([0, 1, 1])
+    })
+
+    it('moves back to the last page when the requested page is past the end', async () => {
+      servePages(manyCases(11))
+      renderPage()
+
+      await screen.findByText('Page 1 of 2 · 11 cases')
+      // The 11th case is deleted elsewhere before page 2 is requested.
+      const requests = servePages(manyCases(10))
+      await userEvent.click(screen.getByTitle('Next Page'))
+
+      expect(await screen.findByText('Page 1 of 1 · 10 cases')).toBeInTheDocument()
+      expect(screen.getByRole('link', { name: /^case 10\b/i })).toBeInTheDocument()
+      expect(requests).toEqual([
+        { page: 1, size: 10 },
+        { page: 0, size: 10 },
+      ])
+    })
+
+    it('shows the pagination controls below the cases on desktop', async () => {
+      mockDesktopScreen()
+      servePages(manyCases(25))
+      renderPage()
+
+      const table = await screen.findByRole('table')
+      const summary = screen.getByText('Page 1 of 3 · 25 cases')
+      expect(table.compareDocumentPosition(summary) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    })
+
+    it('shows no pagination controls when there are no cases', async () => {
+      listCases(() => casePage([]))
+      renderPage()
+
+      await screen.findByText("You don't have any cases yet.")
+      expect(screen.queryByRole('list')).not.toBeInTheDocument()
+      expect(screen.queryByText(/^Page \d/)).not.toBeInTheDocument()
+    })
   })
 })

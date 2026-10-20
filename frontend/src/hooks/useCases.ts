@@ -1,46 +1,44 @@
 import { useCallback, useEffect, useState } from 'react'
 import { fetchCases } from '../api/cases'
-import type { CaseSummary } from '../api/cases'
+import type { CaseListResponse, PageRequest } from '../api/cases'
 
 interface UseCasesResult {
-  cases: CaseSummary[]
+  // The last page loaded; kept while another page loads so the list doesn't jump.
+  data?: CaseListResponse
   loading: boolean
   error: boolean
   retry: () => void
 }
 
-// Loads the signed-in client's cases, newest first. `retry` refetches after a failure.
-export function useCases(): UseCasesResult {
-  const [cases, setCases] = useState<CaseSummary[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(false)
+interface Settled {
+  // Which request this result answers; any other key means a newer request is still loading.
+  key: string
+  data?: CaseListResponse
+  error: boolean
+}
+
+// Loads one page of the signed-in client's cases, newest first. `retry` refetches after a failure.
+export function useCases({ page, size }: PageRequest): UseCasesResult {
   const [attempt, setAttempt] = useState(0)
+  const [settled, setSettled] = useState<Settled>()
+  const key = `${page}:${size}:${attempt}`
 
   useEffect(() => {
     let cancelled = false
-    fetchCases()
+    fetchCases({ page, size })
       .then((loaded) => {
-        if (cancelled) return
-        setCases(loaded)
-        setError(false)
+        if (!cancelled) setSettled({ key, data: loaded, error: false })
       })
       .catch(() => {
-        if (cancelled) return
-        setError(true)
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false)
+        if (!cancelled) setSettled((previous) => ({ key, data: previous?.data, error: true }))
       })
     return () => {
       cancelled = true
     }
-  }, [attempt])
+  }, [key, page, size])
 
-  const retry = useCallback(() => {
-    setLoading(true)
-    setError(false)
-    setAttempt((current) => current + 1)
-  }, [])
+  const retry = useCallback(() => setAttempt((current) => current + 1), [])
 
-  return { cases, loading, error, retry }
+  const loading = settled?.key !== key
+  return { data: settled?.data, loading, error: !loading && settled.error, retry }
 }

@@ -331,6 +331,120 @@ class ListCasesIntegrationTest {
             .andExpect(jsonPath("$.traceId").isNotEmpty());
     }
 
+    @ParameterizedTest
+    @CsvSource(delimiter = '|', value = { "dispute | Property Dispute;Employment dispute",
+            "DISPUTE | Property Dispute;Employment dispute", "prop | Property Dispute", "RTY dis | Property Dispute",
+            "Unpaid Wages | Unpaid wages" })
+    void searchesTitlesByPartialCaseInsensitiveMatch(String search, String expectedTitles) throws Exception {
+        UUID clientId = clientProfileId(email);
+        insertCase(clientId, "Unpaid wages", "DRAFT", "2026-10-13T08:00:00Z", false);
+        insertCase(clientId, "Employment dispute", "CLOSED", "2026-10-14T08:00:00Z", false);
+        insertCase(clientId, "Property Dispute", "SUBMITTED", "2026-10-15T08:00:00Z", false);
+
+        String body = searchCases(login(email), search).andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+        List<String> expected = List.of(expectedTitles.split(";"));
+        assertThat(JsonPath.<List<String>>read(body, "$.content[*].title")).isEqualTo(expected);
+        assertThat(JsonPath.<Integer>read(body, "$.page.totalElements")).isEqualTo(expected.size());
+    }
+
+    @Test
+    void ignoresSurroundingWhitespaceInTheSearch() throws Exception {
+        UUID clientId = clientProfileId(email);
+        UUID property = insertCase(clientId, "Property dispute", "DRAFT", "2026-10-15T08:00:00Z", false);
+        insertCase(clientId, "Unpaid wages", "DRAFT", "2026-10-14T08:00:00Z", false);
+
+        searchCases(login(email), "  property  ").andExpect(status().isOk())
+            .andExpect(jsonPath("$.content", hasSize(1)))
+            .andExpect(jsonPath("$.content[0].id").value(property.toString()));
+    }
+
+    @ParameterizedTest
+    @CsvSource(value = { "''", "'   '" })
+    void blankSearchReturnsEveryCase(String search) throws Exception {
+        UUID clientId = clientProfileId(email);
+        insertCase(clientId, "Employment dispute", "DRAFT", "2026-10-13T08:00:00Z", false);
+        insertCase(clientId, "Property dispute", "SUBMITTED", "2026-10-15T08:00:00Z", false);
+
+        searchCases(login(email), search).andExpect(status().isOk())
+            .andExpect(jsonPath("$.content", hasSize(2)))
+            .andExpect(jsonPath("$.page.totalElements").value(2));
+    }
+
+    @Test
+    void returnsAnEmptyListWhenNoTitlesMatch() throws Exception {
+        insertCase(clientProfileId(email), "Employment dispute", "DRAFT", "2026-10-15T08:00:00Z", false);
+
+        searchCases(login(email), "divorce").andExpect(status().isOk())
+            .andExpect(content().json("""
+                    {"content":[],"page":{"size":10,"number":0,"totalElements":0,"totalPages":0}}
+                    """, true));
+    }
+
+    @ParameterizedTest
+    @CsvSource({ "100%, 100% refund claim", "a_b, Clause a_b breach", "\\, Back\\slash case" })
+    void matchesLikeWildcardsLiterally(String search, String title) throws Exception {
+        UUID clientId = clientProfileId(email);
+        UUID match = insertCase(clientId, title, "DRAFT", "2026-10-15T08:00:00Z", false);
+        insertCase(clientId, "1000 refund claim", "DRAFT", "2026-10-14T08:00:00Z", false);
+        insertCase(clientId, "Clause axb breach", "DRAFT", "2026-10-13T08:00:00Z", false);
+
+        searchCases(login(email), search).andExpect(status().isOk())
+            .andExpect(jsonPath("$.content", hasSize(1)))
+            .andExpect(jsonPath("$.content[0].id").value(match.toString()));
+    }
+
+    @Test
+    void searchExcludesAnotherClientsAndSoftDeletedCases() throws Exception {
+        UUID clientId = clientProfileId(email);
+        UUID own = insertCase(clientId, "Property dispute", "DRAFT", "2026-10-15T08:00:00Z", false);
+        insertCase(clientId, "Deleted property dispute", "DRAFT", "2026-10-16T08:00:00Z", true);
+        insertCase(clientProfileId(registerClient()), "Someone else's property dispute", "DRAFT",
+                "2026-10-17T08:00:00Z", false);
+
+        searchCases(login(email), "property").andExpect(status().isOk())
+            .andExpect(jsonPath("$.content", hasSize(1)))
+            .andExpect(jsonPath("$.content[0].id").value(own.toString()))
+            .andExpect(jsonPath("$.page.totalElements").value(1));
+    }
+
+    @Test
+    void combinesSearchAndStatusBeforePaginating() throws Exception {
+        UUID clientId = clientProfileId(email);
+        for (int day = 1; day <= 12; day++) {
+            String title = (day % 3 == 0 ? "Wages case " : "Property case ") + day;
+            insertCase(clientId, title, day % 2 == 0 ? "SUBMITTED" : "DRAFT",
+                    "2026-10-%02dT08:00:00Z".formatted(day), false);
+        }
+        // Submitted property cases, newest first: 10, 8, 4, 2.
+
+        mockMvc
+            .perform(get(CASES_PATH).param("search", "property")
+                .param("status", "SUBMITTED")
+                .param("page", "1")
+                .param("size", "2")
+                .cookie(login(email)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content", hasSize(2)))
+            .andExpect(jsonPath("$.content[0].title").value("Property case 4"))
+            .andExpect(jsonPath("$.content[1].title").value("Property case 2"))
+            .andExpect(jsonPath("$.page.size").value(2))
+            .andExpect(jsonPath("$.page.number").value(1))
+            .andExpect(jsonPath("$.page.totalElements").value(4))
+            .andExpect(jsonPath("$.page.totalPages").value(2));
+    }
+
+    @Test
+    void unauthenticatedSearchIsRejected() throws Exception {
+        mockMvc.perform(get(CASES_PATH).param("search", "property"))
+            .andExpect(status().isUnauthorized())
+            .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+            .andExpect(jsonPath("$.errorCode").value("UNAUTHORIZED"));
+    }
+
     @Test
     void unauthenticatedFilteredRequestIsRejected() throws Exception {
         mockMvc.perform(get(CASES_PATH).param("status", "DRAFT"))
@@ -368,6 +482,10 @@ class ListCasesIntegrationTest {
         return mockMvc.perform(get(CASES_PATH).param("page", String.valueOf(page))
             .param("size", String.valueOf(size))
             .cookie(session));
+    }
+
+    private ResultActions searchCases(Cookie session, String search) throws Exception {
+        return mockMvc.perform(get(CASES_PATH).param("search", search).cookie(session));
     }
 
     private UUID insertCase(UUID clientId, String title, String caseStatus, String createdAt, boolean deleted) {

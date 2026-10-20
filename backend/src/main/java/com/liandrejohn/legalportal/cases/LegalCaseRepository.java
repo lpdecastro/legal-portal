@@ -6,11 +6,13 @@ import java.util.UUID;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Lock;
 
-public interface LegalCaseRepository extends JpaRepository<LegalCase, UUID> {
+public interface LegalCaseRepository extends JpaRepository<LegalCase, UUID>, JpaSpecificationExecutor<LegalCase> {
 
     /** A case visible to its owner: owned by {@code clientId} and not soft-deleted. */
     Optional<LegalCase> findByIdAndClientIdAndDeletedAtIsNull(UUID id, UUID clientId);
@@ -22,12 +24,12 @@ public interface LegalCaseRepository extends JpaRepository<LegalCase, UUID> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     Optional<LegalCase> findLockedByIdAndClientIdAndDeletedAtIsNull(UUID id, UUID clientId);
 
-    /** One page of the owner's non-deleted cases, with their categories fetched in the same query. */
+    /**
+     * One page of the cases matching {@code spec} (see {@link LegalCaseSpecifications}), with their categories fetched
+     * in the same query.
+     */
+    @Override
     @EntityGraph(attributePaths = "category")
-    Page<LegalCase> findByClientIdAndDeletedAtIsNull(UUID clientId, Pageable pageable);
-
-    /** Like {@link #findByClientIdAndDeletedAtIsNull}, limited to cases in {@code status}. */
-    @EntityGraph(attributePaths = "category")
-    Page<LegalCase> findByClientIdAndStatusAndDeletedAtIsNull(UUID clientId, CaseStatus status, Pageable pageable);
+    Page<LegalCase> findAll(Specification<LegalCase> spec, Pageable pageable);
 
 }

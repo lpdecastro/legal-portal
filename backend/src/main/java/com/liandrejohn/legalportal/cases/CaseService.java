@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -46,18 +47,23 @@ class CaseService {
     }
 
     /**
-     * Returns one zero-based page of the client's own non-deleted cases, newest first, in {@code status} or in any
-     * status when it is {@code null}; the filter applies before paging, so the page metadata counts matching cases
-     * only. Cases created at the same instant are ordered by ID so pages never overlap or skip a case. Pages past the
-     * last one are empty.
+     * Returns one zero-based page of the client's own non-deleted cases, newest first, in {@code status} (any status
+     * when {@code null}) and with titles containing {@code search} ignoring case (any title when {@code null} or
+     * blank; surrounding whitespace is ignored). Filters apply before paging, so the page metadata counts matching
+     * cases only. Cases created at the same instant are ordered by ID so pages never overlap or skip a case. Pages
+     * past the last one are empty.
      */
     @Transactional(readOnly = true)
-    CaseListResponse listCases(UUID userId, CaseStatus status, int page, int size) {
+    CaseListResponse listCases(UUID userId, CaseStatus status, String search, int page, int size) {
         ClientProfile client = findActiveClient(userId);
-        PageRequest pageRequest = PageRequest.of(page, size, NEWEST_FIRST);
-        Page<LegalCase> cases = status == null
-                ? legalCaseRepository.findByClientIdAndDeletedAtIsNull(client.getId(), pageRequest)
-                : legalCaseRepository.findByClientIdAndStatusAndDeletedAtIsNull(client.getId(), status, pageRequest);
+        Specification<LegalCase> spec = LegalCaseSpecifications.visibleTo(client.getId());
+        if (status != null) {
+            spec = spec.and(LegalCaseSpecifications.hasStatus(status));
+        }
+        if (search != null && !search.isBlank()) {
+            spec = spec.and(LegalCaseSpecifications.titleContains(search.strip()));
+        }
+        Page<LegalCase> cases = legalCaseRepository.findAll(spec, PageRequest.of(page, size, NEWEST_FIRST));
         return CaseListResponse.from(cases.map(CaseSummaryResponse::from));
     }
 

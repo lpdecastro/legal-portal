@@ -1,18 +1,29 @@
-# Current Feature
+# Current Feature: CASE-11-01 Search Cases API
 
-<!-- Feature name and short description -->
+Allow authenticated clients to search their own cases by title on `GET /api/v1/cases`.
 
 ## Status
 
-<!-- Not Started / In Progress / Completed -->
+Complete
 
 ## Goals
 
-<!-- Goals and requirements -->
+- `GET /api/v1/cases?search=` matches case titles partially and case-insensitively.
+- Combines with `status`, `page` and `size` (e.g. `?search=property&status=SUBMITTED&page=0&size=10`); search and status applied before pagination, so page metadata counts matching cases only.
+- Empty or omitted `search` returns all of the client's cases (subject to `status`).
+- Only the authenticated client's cases; soft-deleted cases excluded.
+- No matches returns empty `content`.
+- Errors in standard Problem Details format; 401 for unauthenticated requests.
+- Integration tests: partial title match, case-insensitive match, no matches, search + status + pagination, empty/omitted search, other clients' cases excluded, unauthenticated 401.
 
 ## Notes
 
-<!-- Any extra notes -->
+- Type: BE. Story: CASE-11 – Search Cases.
+- Builds on CASE-03-01 (List My Cases API), CASE-09-01 (Paginate Cases API) and CASE-10-01 (Filter Cases API): keep the `createdAt` desc, `id` desc sort, the category `@EntityGraph` and the existing `status`/`page`/`size` validation.
+- Response shape stays `{ content, page: { size, number, totalElements, totalPages } }` (spec example omits `page`).
+- Escape `%`/`_` (LIKE wildcards) in the search term so they match literally.
+- Errors: 401 unauthorized, 500 internal error.
+- Done when all ACs are met and backend tests pass.
 
 ## History
 

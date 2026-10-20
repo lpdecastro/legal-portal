@@ -1,34 +1,18 @@
-# Current Feature: CASE-07-02 Submit Case UI
+# Current Feature
 
-Submit action on the Case Details page that validates a draft, confirms, and submits it.
+<!-- Feature name and short description -->
 
 ## Status
 
-In Progress
+<!-- Not Started / In Progress / Completed -->
 
 ## Goals
 
-- Submit on Case Details is available (enabled) only for `DRAFT` cases
-- Clicking Submit validates client-side first: title required ≤200, category required and active, description required non-blank, location required non-blank ≤255
-- Missing/invalid info shows a validation message with an option to go to Edit Draft (no API call)
-- Valid drafts open a confirmation dialog with Cancel and Submit; Cancel closes without calling the API
-- Confirming calls `POST /api/v1/cases/{id}/submit` (CSRF token in `X-XSRF-TOKEN`)
-- Submit shows a loading indicator and ignores duplicate requests while in flight
-- 200 shows a success message and updates the page in place to `SUBMITTED` (Edit/Submit/Delete gone, Close shown)
-- 400 `VALIDATION_ERROR` shows the API's field errors with an option to edit the draft
-- 409 `INVALID_CASE_STATE` (already submitted/closed) shows a message and refreshes the case; 404 `CASE_NOT_FOUND` shows a message and refreshes (→ Case not found)
-- Other failures show an error message and stay on the page
-- Unauthenticated clients are redirected to login (401 → `onUnauthorized` → `RequireAuth`)
-- RTL + MSW tests cover every item in the spec's Testing section
+<!-- Goals and requirements -->
 
 ## Notes
 
-- Spec: `context/epics/03-case-management/stories/CASE-07-submit-case/tasks/CASE-07-02-submit-case-ui.md`
-- Dependencies done: Submit Case API (History CASE-07-01), Get Case Details API, Edit Draft Form, Case Details Page (CASE-04-02), auth + protected routes.
-- `CaseDetailsPage` already renders a disabled Submit button for drafts — wire it up, likely as a `SubmitCaseButton` in `components/` mirroring `DeleteCaseButton`/`useDeleteCase`.
-- `CaseResponse` now includes `submittedAt`; add it to the `LegalCase` type in `api/cases.ts`.
-- "Category active" check can reuse `useLegalCategories` (already loaded on the page to resolve the name).
-- Updating in place needs the submitted case pushed into `useCase` state (e.g. a setter) or a `retry()` refetch.
+<!-- Any extra notes -->
 
 ## History
 
@@ -64,3 +48,4 @@ In Progress
 - **CASE-04-02: Case Details Page** (2026-10-20) — `CaseDetailsPage` on `/cases/:id` loads the case via `fetchCase()`/`useCase` and shows title, `CaseStatusTag`, category name (resolved from `useLegalCategories`; "Unavailable" when not active), location, created/last-updated dates and description (missing optional fields "Not provided") in an antd `Descriptions` card (2 columns on `md`+, 1 on mobile); status actions: Draft Edit/Submit/Delete, Submitted Close, Closed none — Edit navigates to `editCasePath(id)`, Submit/Delete/Close render disabled until CASE-07-02/CASE-06-02/CASE-08-02; loading `Spin`, error `Alert` with Retry, shared `CaseNotFound` `Result` for 404/400 (also used by `EditCasePage`); `formatDate` moved to `utils/formatDate.ts` and `isCaseNotFound` to `api/cases.ts`; page keyed by ID; `CaseDetailsPage` RTL + MSW tests; backlog BKL-04 (Cancel on Edit Draft).
 - **CASE-06-02: Delete Draft UI** (2026-10-20) — Delete on draft Case Details (`DeleteCaseButton` in `components/`) opens an antd `Modal` "Delete this draft?" with Cancel/Delete; confirming sends `DELETE /api/v1/cases/{id}` via new `deleteNoContent` client helper (fresh CSRF token), `deleteCase()` (`api/cases.ts`) and `useDeleteCase` (in-flight ref guard, resolves `false` for ignored duplicates); Delete buttons show a spinner and the dialog can't be cancelled/dismissed while deleting; 204 shows "Draft deleted." and navigates to My Cases; 404 "This case no longer exists or you no longer have access to it.", 409 "Only draft cases can be deleted.", other failures "We couldn't delete this case. Please try again." toasts, staying on the page; 401 shows no toast and `RequireAuth` sends the client to login; `renderWithProviders` disables antd motion (jsdom never ends animations, so closed dialogs never hid); `CaseDetailsPage` delete tests; coding standard "Put stateful components in their own file".
 - **CASE-07-01: Submit Case API** (2026-10-20) — Authenticated, CSRF-protected `POST /api/v1/cases/{id}/submit` (`CaseController.submit` → `CaseService.submitDraft`) submits one of the session's client's drafts and returns 200 `CaseResponse`, which now includes `submittedAt` (also on create/get/update, `null` for drafts); check order: 404 `CASE_NOT_FOUND` (other client's/deleted/nonexistent) → 409 `INVALID_CASE_STATE` "Only draft cases can be submitted." (submitted/closed) → 400 `VALIDATION_ERROR` with every failing field at once (title required ≤200, active category — rechecked, so a since-deactivated category is rejected — description required, location required ≤255; messages match Create Draft); `LegalCase.submit` sets `SUBMITTED` and `submitted_at`, `@PreUpdate` refreshes `updated_at`, `created_at` kept; row locked during the check via `LegalCaseRepository.findLockedByIdAndClientIdAndDeletedAtIsNull` (`PESSIMISTIC_WRITE`, `FOR NO KEY UPDATE`), so concurrent submissions succeed only once; `FieldValidationException` takes a list of field errors; `SubmitCaseIntegrationTest` (rows unchanged on every rejection, 5 concurrent submits → one 200).
+- **CASE-07-02: Submit Case UI** (2026-10-20) — Submit on draft Case Details (`SubmitCaseButton` in `components/`) first checks the draft client-side via `submissionErrors` (`utils/submissionErrors.ts`: title required ≤200, active category, description required, location required ≤255; messages match the API) and lists what's missing in an "This draft isn't ready to submit" dialog with Edit Draft, without calling the API; complete drafts get a "Submit this case?" confirmation with Cancel/Submit; confirming sends `POST /api/v1/cases/{id}/submit` via new `postForJson` client helper (fresh CSRF token), `submitCase()` (`api/cases.ts`) and `useSubmitCase` (in-flight ref guard, resolves `undefined` for ignored duplicates); dialog locked and button loading while submitting; 200 shows "Case submitted." and updates the page in place via new `useCase.replace` (Edit/Submit/Delete gone, Close shown); 400 lists the API's `fieldErrors` with Edit Draft, 409 "This case has already been submitted or closed." and 404 "This case no longer exists…" toasts then reload the case, other failures "We couldn't submit this case. Please try again.", 401 goes to login; one antd `Modal` for both steps (two modals shared an `aria-labelledby` id in tests); `CaseDetailsPage` loads categories once and shares them with the category name and the Submit check (Submit disabled while loading, API checks the category if loading failed); `LegalCase` gains `submittedAt`; `CaseDetailsPage` submit tests.

@@ -1,28 +1,18 @@
-# Current Feature: DASH-01-02: Case Statistics UI
+# Current Feature
 
-Display case statistics on the client dashboard using the Dashboard Summary API.
+<!-- Feature name and short description -->
 
 ## Status
 
-In Progress
+<!-- Not Started / In Progress / Completed -->
 
 ## Goals
 
-- Display total, draft, submitted, and closed case counts.
-- Fetch data from `GET /api/v1/dashboard/summary` using TanStack Query.
-- Display zero for statuses with no cases.
-- Show loading and error states.
-- Ensure statistics are responsive on desktop and mobile.
-- Share the dashboard API response with the Recent Cases UI to avoid duplicate requests.
+<!-- Goals and requirements -->
 
 ## Notes
 
-- Spec: `context/epics/04-client-dashboard/stories/DASH-01-case-statistics/tasks/DASH-01-02-case-statistics-ui.md`.
-- API (DASH-01-01): `{ statistics: { total, draft, submitted, closed }, recentCases: [{ id, title, status, createdAt }] }`; 401 when signed out.
-- TanStack Query is not installed yet — adding `@tanstack/react-query` (and a `QueryClientProvider`, also in `renderWithProviders`) is part of this task. Existing data hooks (`useCases`, `useCase`, …) use hand-rolled state; don't migrate them here.
-- Sharing with Recent Cases (DASH-02-01): one query key / `useDashboardSummary` hook that both UIs read, so the dashboard makes a single request.
-- Reuse existing patterns: error `Alert` with Retry, `Spin` loading, status labels matching `CaseStatusTag`.
-- Implemented: `api/dashboard.ts`, `query/queryClient.ts` (`retry: false`), `useDashboardSummary` (key `['dashboard','summary']`), `CaseStatistics` (antd `Statistic` cards, 2 per row on mobile, 4 from `lg`); `QueryClientProvider` in `App` and `renderWithProviders` (fresh client per test); `AuthProvider` clears the query cache on sign-out; `DashboardPage` tests; `RequireAuth` tests mock the summary.
+<!-- Any extra notes -->
 
 ## History
 
@@ -68,3 +58,4 @@ In Progress
 - **CASE-11-01: Search Cases API** (2026-10-20) — `GET /api/v1/cases` takes an optional `search` matching case titles partially and case-insensitively (`lower(title) like`), combining with `status`/`page`/`size`; filters apply before paging, so page metadata counts matching cases only; blank or omitted `search` returns every case, surrounding whitespace ignored; `%`, `_` and `\` match literally (Spring Data `EscapeCharacter`); `CaseService.listCases(userId, status, search, page, size)` builds the query from `LegalCaseSpecifications` (`visibleTo` ownership + soft deletion, `hasStatus`, `titleContains`) via `JpaSpecificationExecutor`, replacing the per-filter derived queries; `LegalCaseRepository.findAll(Specification, Pageable)` keeps the category `@EntityGraph`; `createdAt` desc/`id` desc order unchanged; no search length limit; `ListCasesIntegrationTest` search tests.
 - **CASE-11-02: Search Cases UI** (2026-10-20) — `CaseSearchInput` (`components/`, antd `Input` "Search cases by title" with search icon and clear button, full width on mobile) beside `CaseStatusFilter` above the cases on `/cases`; `fetchCases`/`useCases` take an optional `search` (`CaseListRequest`), sent as `search=` only when non-blank and part of the `useCases` request key (now `JSON.stringify`'d so searches containing separators can't collide); new `useDebouncedValue` hook delays the trimmed search by 300 ms, so typing sends one request, while clearing restores all cases immediately; `MyCasesPage` adds the search to its request state (adjusted while rendering), returning to page 1 with the size and status kept, and page, page-size and status changes keep the search; no matches show `Empty` `No cases match "…".` (or `No {status} cases match "…".`) with Clear Search and, when filtered by status, Show All Statuses; error `Alert` keeps the search and Retry repeats it; clients with no cases at all keep "You don't have any cases yet." without search or filter; search not kept in the URL; `MyCasesPage` search tests.
 - **DASH-01-01: Dashboard Summary API** (2026-10-20) — Authenticated `GET /api/v1/dashboard/summary` (`DashboardController` → `DashboardService`, read-only transaction, new `dashboard` package and `Dashboard` OpenAPI tag) returns `{ statistics: { total, draft, submitted, closed }, recentCases: [{ id, title, status, createdAt }] }` (`DashboardSummaryResponse`) for the session's client's non-deleted cases; counts come from one grouped JPQL query (`LegalCaseRepository.countByStatus`, `StatusCount` projection), statuses without cases count as zero and `total` is their sum; recent cases are the 5 newest (`findTop5ByClientIdAndDeletedAtIsNullOrderByCreatedAtDescIdDesc`, ties by `id` desc like the cases list); zero counts and `recentCases: []` when none; unauthenticated requests and suspended/disabled/deleted accounts get 401 via new `ClientProfileRepository.findActiveByUserId`, now also used by `CaseService`; `DashboardSummaryIntegrationTest`.
+- **DASH-01-02: Case Statistics UI** (2026-10-20) — `DashboardPage` shows Total Cases, Draft, Submitted and Closed counts as antd `Statistic` cards (`CaseStatistics` in `components/`, two per row on mobile, four across from `lg`); `@tanstack/react-query` added: `useDashboardSummary` (query key `['dashboard', 'summary']`) loads `GET /api/v1/dashboard/summary` via `fetchDashboardSummary()` (`api/dashboard.ts`, `DashboardSummary`/`CaseStatistics`/`RecentCase` types), shared with the Recent Cases UI (DASH-02-01) so the dashboard makes one request; loading `Spin` "Loading statistics…", error `Alert` with Retry (a failed refresh keeps the last counts); `createQueryClient()` (`query/queryClient.ts`) disables automatic retries in favour of the Retry button; `QueryClientProvider` in `App` and `renderWithProviders` (fresh client per test); `AuthProvider` clears the query cache on sign-out so the next client never sees cached data; `DashboardPage` tests (counts, zeros, loading, error/Retry, single request for two readers); `RequireAuth` tests mock the summary.

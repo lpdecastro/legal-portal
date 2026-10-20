@@ -1,18 +1,31 @@
-# Current Feature
+# Current Feature: CASE-11-02 Search Cases UI
 
-<!-- Feature name and short description -->
+Allow clients to search their cases by title from the My Cases page (`/cases`).
 
 ## Status
 
-<!-- Not Started / In Progress / Completed -->
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- Search input above the cases table.
+- Calls `GET /api/v1/cases?search={query}`.
+- Debounced input to avoid excessive API requests.
+- Search combines with the selected status filter.
+- Search query preserved when changing pages.
+- Cases table updates with matching results.
+- Searching resets pagination to the first page.
+- Empty state when no cases match.
+- Clearing the search restores all cases.
+- Loading and error states.
+- Desktop and mobile layouts.
 
 ## Notes
 
-<!-- Any extra notes -->
+- Type: FE. Story: CASE-11 – Search Cases. Spec: `context/epics/03-case-management/stories/CASE-11-search-cases/tasks/CASE-11-02-search-cases-ui.md`.
+- Depends on CASE-03-02 (My Cases Page), CASE-10-02 (Filter Cases UI), CASE-11-01 (Search Cases API).
+- Tests: partial-title search, results update after typing, clearing restores all, search + status filter together and persisted across pages, no-match empty state, search resets to page 1, API errors show an error message.
+- DoD: all ACs met, automated FE tests pass.
 
 ## History
 

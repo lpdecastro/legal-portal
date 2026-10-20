@@ -97,6 +97,40 @@ const MIXED_CASES = [
   ...casesInStatus('CLOSED', 'Closed', 2),
 ]
 
+// Serves `all` cases filtered by the `status` and `search` (case-insensitive title match) query parameters and paged,
+// and records each request (`status` and `search` are null when left out).
+function serveSearchable(all: typeof CASES) {
+  const requests: { page: number; size: number; status: string | null; search: string | null }[] = []
+  listCases(({ request }) => {
+    const params = new URL(request.url).searchParams
+    const page = Number(params.get('page'))
+    const size = Number(params.get('size'))
+    const status = params.get('status')
+    const search = params.get('search')
+    requests.push({ page, size, status, search })
+    const matching = all.filter(
+      (legalCase) =>
+        (!status || legalCase.status === status) &&
+        (!search || legalCase.title.toLowerCase().includes(search.toLowerCase())),
+    )
+    return casePage(matching.slice(page * size, (page + 1) * size), {
+      size,
+      number: page,
+      totalElements: matching.length,
+    })
+  })
+  return requests
+}
+
+const searchBox = () => screen.getByRole('textbox', { name: 'Search cases by title' })
+
+// Clicks the search box's clear button.
+async function clearSearch() {
+  const clear = searchBox().closest('.ant-input-affix-wrapper')?.querySelector('.ant-input-clear-icon')
+  if (!clear) throw new Error('No clear button')
+  await userEvent.click(clear)
+}
+
 // Picks an option in the status filter by its label.
 async function selectStatus(label: string) {
   await userEvent.click(screen.getByRole('combobox', { name: 'Filter by status' }))
@@ -546,6 +580,187 @@ describe('MyCasesPage', () => {
 
       await screen.findByText("You don't have any cases yet.")
       expect(screen.queryByRole('combobox', { name: 'Filter by status' })).not.toBeInTheDocument()
+    })
+  })
+
+  describe('search', () => {
+    it('shows only the cases whose title contains the search, case-insensitively', async () => {
+      const requests = serveSearchable(MIXED_CASES)
+      renderPage()
+
+      await screen.findByText('Page 1 of 3 · 30 cases')
+      await userEvent.type(searchBox(), 'SUBMIT')
+
+      expect(await screen.findByText('Page 1 of 1 · 3 cases')).toBeInTheDocument()
+      const shown = screen.getAllByRole('link').map((link) => link.textContent ?? '')
+      expect(shown).toHaveLength(3)
+      expect(shown.every((text) => text.startsWith('Submitted'))).toBe(true)
+      expect(requests.at(-1)).toEqual({ page: 0, size: 10, status: null, search: 'SUBMIT' })
+    })
+
+    it('waits for typing to pause before searching, sending one request', async () => {
+      const requests = serveSearchable(MIXED_CASES)
+      renderPage()
+
+      await screen.findByText('Page 1 of 3 · 30 cases')
+      await userEvent.type(searchBox(), 'closed')
+
+      expect(await screen.findByText('Page 1 of 1 · 2 cases')).toBeInTheDocument()
+      expect(requests.map(({ search }) => search)).toEqual([null, 'closed'])
+    })
+
+    it('ignores surrounding whitespace and does not search for whitespace alone', async () => {
+      const requests = serveSearchable(MIXED_CASES)
+      renderPage()
+
+      await screen.findByText('Page 1 of 3 · 30 cases')
+      await userEvent.type(searchBox(), '   ')
+      await new Promise((resolve) => setTimeout(resolve, 400))
+      expect(requests).toHaveLength(1)
+
+      await userEvent.type(searchBox(), 'closed  ')
+
+      expect(await screen.findByText('Page 1 of 1 · 2 cases')).toBeInTheDocument()
+      expect(requests.at(-1)?.search).toBe('closed')
+    })
+
+    it('restores every case when the search is cleared', async () => {
+      const requests = serveSearchable(MIXED_CASES)
+      renderPage()
+
+      await screen.findByText('Page 1 of 3 · 30 cases')
+      await userEvent.type(searchBox(), 'closed')
+      await screen.findByText('Page 1 of 1 · 2 cases')
+
+      await clearSearch()
+
+      expect(await screen.findByText('Page 1 of 3 · 30 cases')).toBeInTheDocument()
+      expect(searchBox()).toHaveValue('')
+      expect(requests.at(-1)).toEqual({ page: 0, size: 10, status: null, search: null })
+    })
+
+    it('goes back to the first page when searching, keeping the page size', async () => {
+      const requests = serveSearchable(MIXED_CASES)
+      renderPage()
+
+      await screen.findByText('Page 1 of 3 · 30 cases')
+      await userEvent.click(screen.getByTitle('3'))
+      await screen.findByText('Page 3 of 3 · 30 cases')
+
+      await userEvent.type(searchBox(), 'draft')
+
+      expect(await screen.findByText('Page 1 of 3 · 25 cases')).toBeInTheDocument()
+      expect(requests.at(-1)).toEqual({ page: 0, size: 10, status: null, search: 'draft' })
+    })
+
+    it('combines the search with the status filter and keeps both when changing pages', async () => {
+      const requests = serveSearchable([...MIXED_CASES, ...casesInStatus('SUBMITTED', 'Draft review', 2)])
+      renderPage()
+
+      await screen.findByText('Page 1 of 4 · 32 cases')
+      await userEvent.type(searchBox(), 'draft')
+      await screen.findByText('Page 1 of 3 · 27 cases')
+
+      await selectStatus('Draft')
+      expect(await screen.findByText('Page 1 of 3 · 25 cases')).toBeInTheDocument()
+
+      await userEvent.click(screen.getByTitle('Next Page'))
+      expect(await screen.findByText('Page 2 of 3 · 25 cases')).toBeInTheDocument()
+      expect(screen.getByRole('link', { name: /^draft 11\b/i })).toBeInTheDocument()
+
+      await userEvent.click(screen.getByRole('combobox', { name: 'Cases per page' }))
+      await userEvent.click(await screen.findByText('20 / page'))
+      expect(await screen.findByText('Page 1 of 2 · 25 cases')).toBeInTheDocument()
+
+      await selectStatus('Submitted')
+      expect(await screen.findByText('Page 1 of 1 · 2 cases')).toBeInTheDocument()
+      expect(searchBox()).toHaveValue('draft')
+
+      expect(requests.slice(2)).toEqual([
+        { page: 0, size: 10, status: 'DRAFT', search: 'draft' },
+        { page: 1, size: 10, status: 'DRAFT', search: 'draft' },
+        { page: 0, size: 20, status: 'DRAFT', search: 'draft' },
+        { page: 0, size: 20, status: 'SUBMITTED', search: 'draft' },
+      ])
+    })
+
+    it('shows an empty state when no cases match, keeping the search and offering to clear it', async () => {
+      const requests = serveSearchable(MIXED_CASES)
+      renderPage()
+
+      await screen.findByText('Page 1 of 3 · 30 cases')
+      await userEvent.type(searchBox(), 'tenancy')
+
+      expect(await screen.findByText('No cases match "tenancy".')).toBeInTheDocument()
+      expect(searchBox()).toHaveValue('tenancy')
+      expect(screen.getByRole('combobox', { name: 'Filter by status' })).toBeInTheDocument()
+      expect(screen.queryByText(/^Page \d/)).not.toBeInTheDocument()
+      expect(screen.queryByText("You don't have any cases yet.")).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'Show All Statuses' })).not.toBeInTheDocument()
+
+      await userEvent.click(screen.getByRole('button', { name: 'Clear Search' }))
+
+      expect(await screen.findByText('Page 1 of 3 · 30 cases')).toBeInTheDocument()
+      expect(searchBox()).toHaveValue('')
+      expect(requests.at(-1)).toEqual({ page: 0, size: 10, status: null, search: null })
+    })
+
+    it('names the status in the empty state and offers to clear either filter', async () => {
+      serveSearchable(MIXED_CASES)
+      renderPage()
+
+      await screen.findByText('Page 1 of 3 · 30 cases')
+      await selectStatus('Closed')
+      await screen.findByText('Page 1 of 1 · 2 cases')
+      await userEvent.type(searchBox(), 'draft')
+
+      expect(await screen.findByText('No closed cases match "draft".')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Clear Search' })).toBeInTheDocument()
+
+      await userEvent.click(screen.getByRole('button', { name: 'Show All Statuses' }))
+
+      expect(await screen.findByText('Page 1 of 3 · 25 cases')).toBeInTheDocument()
+      expect(searchBox()).toHaveValue('draft')
+    })
+
+    it('shows an error when the search fails and retries the same search', async () => {
+      const searches: (string | null)[] = []
+      listCases(({ request }) => {
+        const search = new URL(request.url).searchParams.get('search')
+        searches.push(search)
+        if (search && searches.filter((requested) => requested === search).length === 1) return serverError()
+        return casePage(search ? CASES.filter(({ title }) => title.toLowerCase().includes(search)) : CASES)
+      })
+      renderPage()
+
+      await screen.findByText('Page 1 of 1 · 2 cases')
+      await userEvent.type(searchBox(), 'wages')
+
+      expect(await screen.findByText("We couldn't load your cases.")).toBeInTheDocument()
+      expect(searchBox()).toHaveValue('wages')
+
+      await userEvent.click(screen.getByRole('button', { name: 'Retry' }))
+
+      expect(await screen.findByText('Page 1 of 1 · 1 case')).toBeInTheDocument()
+      expect(screen.getByRole('link', { name: /unpaid wages/i })).toBeInTheDocument()
+      expect(searches).toEqual([null, 'wages', 'wages'])
+    })
+
+    it('shows the search box above the cases table on desktop', async () => {
+      mockDesktopScreen()
+      serveSearchable(MIXED_CASES)
+      renderPage()
+
+      const table = await screen.findByRole('table')
+      expect(searchBox().compareDocumentPosition(table) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    })
+
+    it('shows no search box when the client has no cases at all', async () => {
+      listCases(() => casePage([]))
+      renderPage()
+
+      await screen.findByText("You don't have any cases yet.")
+      expect(screen.queryByRole('textbox', { name: 'Search cases by title' })).not.toBeInTheDocument()
     })
   })
 })

@@ -5,9 +5,11 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 import type { CaseListRequest, CaseStatus, CaseSummary } from '../api/cases'
 import CasePagination from '../components/CasePagination'
+import CaseSearchInput from '../components/CaseSearchInput'
 import CaseStatusFilter from '../components/CaseStatusFilter'
 import CaseStatusTag from '../components/CaseStatusTag'
 import { useCases } from '../hooks/useCases'
+import { useDebouncedValue } from '../hooks/useDebouncedValue'
 import { caseDetailsPath, paths } from '../routes/paths'
 import { formatDate } from '../utils/formatDate'
 
@@ -73,6 +75,9 @@ function CaseCards({ cases, loading }: CaseListProps) {
 
 const DEFAULT_PAGE_SIZE = 10
 
+// How long typing must pause before the search is sent.
+const SEARCH_DELAY_MS = 300
+
 const STATUS_NAMES: Record<CaseStatus, string> = { DRAFT: 'draft', SUBMITTED: 'submitted', CLOSED: 'closed' }
 
 function MyCasesContent() {
@@ -81,6 +86,15 @@ function MyCasesContent() {
   const screens = Grid.useBreakpoint()
   const isDesktop = screens.md ?? true
   const navigate = useNavigate()
+  const [searchText, setSearchText] = useState('')
+  const debouncedSearch = useDebouncedValue(searchText.trim(), SEARCH_DELAY_MS)
+  // Clearing the search shows every case straight away; only typing waits for a pause.
+  const search = searchText.trim() === '' ? '' : debouncedSearch
+
+  // A new search starts again from the first page, keeping the status filter and page size.
+  if (search !== (request.search ?? '')) {
+    setRequest({ page: 0, size: request.size, status: request.status, search: search || undefined })
+  }
 
   // A page past the end (e.g. its last case was deleted elsewhere) moves back to the last page.
   // Adjusted while rendering, as React recommends for state derived from a response.
@@ -89,7 +103,8 @@ function MyCasesContent() {
   }
 
   // A new filter starts again from the first page.
-  const changeStatus = (status?: CaseStatus) => setRequest({ page: 0, size: request.size, status })
+  const changeStatus = (status?: CaseStatus) => setRequest({ ...request, page: 0, status })
+  const filtered = Boolean(request.status || request.search)
 
   if (!data && loading) {
     return (
@@ -99,8 +114,8 @@ function MyCasesContent() {
     )
   }
 
-  // With no cases at all there is nothing to filter, so the filter is left out.
-  if (!request.status && !loading && !error && data?.page.totalElements === 0) {
+  // With no cases at all there is nothing to search or filter, so the controls are left out.
+  if (!filtered && !loading && !error && data?.page.totalElements === 0) {
     return (
       <Empty description="You don't have any cases yet." style={{ padding: 48 }}>
         <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate(paths.createCase)}>
@@ -112,12 +127,18 @@ function MyCasesContent() {
 
   return (
     <>
-      <div style={{ marginBottom: 16 }}>
+      <Flex vertical={!isDesktop} gap="small" wrap style={{ marginBottom: 16 }}>
+        <CaseSearchInput value={searchText} compact={!isDesktop} onChange={setSearchText} />
         <CaseStatusFilter value={request.status} compact={!isDesktop} onChange={changeStatus} />
-      </div>
+      </Flex>
       {renderCases()}
     </>
   )
+
+  function noMatchesMessage() {
+    const cases = request.status ? `${STATUS_NAMES[request.status]} cases` : 'cases'
+    return request.search ? `No ${cases} match "${request.search}".` : `No ${cases} found.`
+  }
 
   function renderCases() {
     if (error) {
@@ -143,11 +164,14 @@ function MyCasesContent() {
       return (
         <Flex justify="center" style={{ padding: 48 }}>
           {/* The previous filter matched nothing; wait for the new one rather than repeat its empty state. */}
-          {loading || !request.status ? (
+          {loading || !filtered ? (
             <Spin size="large" description="Loading cases…" />
           ) : (
-            <Empty description={`No ${STATUS_NAMES[request.status]} cases found.`}>
-              <Button onClick={() => changeStatus(undefined)}>Show All Statuses</Button>
+            <Empty description={noMatchesMessage()}>
+              <Flex gap="small" wrap justify="center">
+                {request.search && <Button onClick={() => setSearchText('')}>Clear Search</Button>}
+                {request.status && <Button onClick={() => changeStatus(undefined)}>Show All Statuses</Button>}
+              </Flex>
             </Empty>
           )}
         </Flex>

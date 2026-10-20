@@ -17,16 +17,17 @@ interface Settled {
   error: boolean
 }
 
-// Loads one page of the signed-in client's cases, newest first, optionally of one status.
+// Loads one page of the signed-in client's cases, newest first, optionally of one status and matching a title search.
 // `retry` refetches after a failure.
-export function useCases({ page, size, status }: CaseListRequest): UseCasesResult {
+export function useCases({ page, size, status, search }: CaseListRequest): UseCasesResult {
   const [attempt, setAttempt] = useState(0)
   const [settled, setSettled] = useState<Settled>()
-  const key = `${page}:${size}:${status ?? ''}:${attempt}`
+  // JSON keeps a search containing separators from colliding with another request.
+  const key = JSON.stringify([page, size, status, search, attempt])
 
   useEffect(() => {
     let cancelled = false
-    fetchCases({ page, size, status })
+    fetchCases({ page, size, status, search })
       .then((loaded) => {
         if (!cancelled) setSettled({ key, data: loaded, error: false })
       })
@@ -36,7 +37,7 @@ export function useCases({ page, size, status }: CaseListRequest): UseCasesResul
     return () => {
       cancelled = true
     }
-  }, [key, page, size, status])
+  }, [key, page, size, status, search])
 
   const retry = useCallback(() => setAttempt((current) => current + 1), [])
 

@@ -1,18 +1,28 @@
-# Current Feature
+# Current Feature: PROF-02-01: Change Password API
 
-<!-- Feature name and short description -->
+Allow authenticated clients to securely change their password.
 
 ## Status
 
-<!-- Not Started / In Progress / Completed -->
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- Authenticated, CSRF-protected `PATCH /api/v1/clients/me/password` with `{ currentPassword, newPassword, confirmPassword }`; returns 204 No Content.
+- Current password must be correct; otherwise 403 (Problem Details).
+- New password at least 12 characters (and ≤72 bytes, like registration) and different from the current password.
+- New password and confirmation must match.
+- New password hashed with BCrypt; the previous password no longer works after a successful change.
+- 400 `VALIDATION_ERROR` with `fieldErrors` for invalid input; 401 `UNAUTHORIZED` for unauthenticated requests (and suspended/disabled/deleted accounts).
+- Passwords never exposed in responses or logs.
+- Automated tests cover successful changes, incorrect current password, validation errors, and unauthorized requests.
 
 ## Notes
 
-<!-- Any extra notes -->
+- Spec: `context/epics/05-profile-settings/stories/PROF-02-change-password/tasks/PROF-02-01-change-password-api.md`.
+- Errors per spec: 400 validation, 401 unauthorized, 403 incorrect current password, 500 internal. No dedicated error code for a wrong current password exists in `project-overview.md` — decide between `FORBIDDEN` and a new code (e.g. `INCORRECT_PASSWORD`, added to the error code list).
+- Reuse registration's password rules (12+ chars, ≤72 bytes) and the `FieldValidationException`/`ApiExceptionHandler` patterns; follow `ClientProfileController`/`ClientProfileService` (`client` package, `Profile` OpenAPI tag).
+- Consider whether a wrong current password should count toward rate limiting, and whether other sessions should be ended after a change (not required by the spec).
 
 ## History
 

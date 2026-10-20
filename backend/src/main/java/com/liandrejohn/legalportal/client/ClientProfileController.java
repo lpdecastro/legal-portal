@@ -2,11 +2,13 @@ package com.liandrejohn.legalportal.client;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -22,6 +24,8 @@ class ClientProfileController {
 
     private final ClientProfileService clientProfileService;
 
+    private final ChangePasswordService changePasswordService;
+
     /** The session's client's profile. */
     @GetMapping("/me")
     ClientProfileResponse me(@AuthenticationPrincipal AuthenticatedUser user) {
@@ -33,6 +37,14 @@ class ClientProfileController {
     ClientProfileResponse update(@AuthenticationPrincipal AuthenticatedUser user,
             @Valid @RequestBody UpdateProfileRequest request) {
         return clientProfileService.updateProfile(user.getId(), request);
+    }
+
+    /** Changes the session's client's password after verifying the current one. The session stays signed in. */
+    @PatchMapping("/me/password")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    void changePassword(@AuthenticationPrincipal AuthenticatedUser user,
+            @Valid @RequestBody ChangePasswordRequest request) {
+        changePasswordService.changePassword(user.getId(), request);
     }
 
 }

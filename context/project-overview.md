@@ -310,6 +310,7 @@ Common API errors:
 - 400 - VALIDATION_ERROR - Invalid form inputs
 - 401 - UNAUTHORIZED - Missing or expired session
 - 403 - FORBIDDEN - Insufficient permissions
+- 403 - INCORRECT_PASSWORD - Current password is wrong when changing password
 - 404 - CASE_NOT_FOUND - Case doesn't exist or isn't accessible
 - 404 - PROFILE_NOT_FOUND - Client profile doesn't exist
 - 409 - EMAIL_ALREADY_EXISTS - Registration conflict

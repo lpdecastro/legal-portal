@@ -59,4 +59,8 @@ public class User {
         this.passwordHash = passwordHash;
     }
 
+    public void changePasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
+    }
+
 }

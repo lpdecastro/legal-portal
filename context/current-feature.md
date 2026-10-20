@@ -1,27 +1,18 @@
-# Current Feature: CASE-08-01 Close Case API
+# Current Feature
 
-Allow authenticated clients to close their own submitted cases via `POST /api/v1/cases/{id}/close`.
+<!-- Feature name and short description -->
 
 ## Status
 
-In Progress
+<!-- Not Started / In Progress / Completed -->
 
 ## Goals
 
-- Authenticated, CSRF-protected `POST /api/v1/cases/{id}/close` returns 200 with the closed case (`status: CLOSED`, `closedAt` set).
-- Only the case owner can close it; other clients' and nonexistent cases return 404 `CASE_NOT_FOUND`.
-- Only `SUBMITTED` cases can be closed; `DRAFT` or `CLOSED` cases return 409 `INVALID_CASE_STATE`.
-- Status updated to `CLOSED` and `closed_at` set.
-- Unauthenticated requests return 401; errors follow the standard Problem Details format.
-- Automated backend tests cover: closing own submitted case, returned status and closure date, 409 for draft/closed, 404 for another client's case, 401 unauthenticated.
+<!-- Goals and requirements -->
 
 ## Notes
 
-- Spec: `context/epics/03-case-management/stories/CASE-08-close-case/tasks/CASE-08-01-close-case-api.md`.
-- Spec response shows `{ id, status, closedAt }`; follow Submit Case (CASE-07-01) and return the full `CaseResponse` with a new `closedAt` field (`null` until closed).
-- `closed_at` column already exists (V4) and is mapped on `LegalCase`.
-- Mirror `submitDraft`: check order 404 → 409; deleted cases 404; non-UUID IDs 400; missing/invalid CSRF 403; suspended/disabled/deleted accounts 401; lock the row (`findLockedByIdAndClientIdAndDeletedAtIsNull`) so concurrent closes succeed once; `@PreUpdate` refreshes `updated_at`, `created_at`/`submitted_at` kept; rows unchanged on every rejection.
-- Dependencies: authentication and CSRF protection (done).
+<!-- Any extra notes -->
 
 ## History
 
@@ -58,3 +49,4 @@ In Progress
 - **CASE-06-02: Delete Draft UI** (2026-10-20) — Delete on draft Case Details (`DeleteCaseButton` in `components/`) opens an antd `Modal` "Delete this draft?" with Cancel/Delete; confirming sends `DELETE /api/v1/cases/{id}` via new `deleteNoContent` client helper (fresh CSRF token), `deleteCase()` (`api/cases.ts`) and `useDeleteCase` (in-flight ref guard, resolves `false` for ignored duplicates); Delete buttons show a spinner and the dialog can't be cancelled/dismissed while deleting; 204 shows "Draft deleted." and navigates to My Cases; 404 "This case no longer exists or you no longer have access to it.", 409 "Only draft cases can be deleted.", other failures "We couldn't delete this case. Please try again." toasts, staying on the page; 401 shows no toast and `RequireAuth` sends the client to login; `renderWithProviders` disables antd motion (jsdom never ends animations, so closed dialogs never hid); `CaseDetailsPage` delete tests; coding standard "Put stateful components in their own file".
 - **CASE-07-01: Submit Case API** (2026-10-20) — Authenticated, CSRF-protected `POST /api/v1/cases/{id}/submit` (`CaseController.submit` → `CaseService.submitDraft`) submits one of the session's client's drafts and returns 200 `CaseResponse`, which now includes `submittedAt` (also on create/get/update, `null` for drafts); check order: 404 `CASE_NOT_FOUND` (other client's/deleted/nonexistent) → 409 `INVALID_CASE_STATE` "Only draft cases can be submitted." (submitted/closed) → 400 `VALIDATION_ERROR` with every failing field at once (title required ≤200, active category — rechecked, so a since-deactivated category is rejected — description required, location required ≤255; messages match Create Draft); `LegalCase.submit` sets `SUBMITTED` and `submitted_at`, `@PreUpdate` refreshes `updated_at`, `created_at` kept; row locked during the check via `LegalCaseRepository.findLockedByIdAndClientIdAndDeletedAtIsNull` (`PESSIMISTIC_WRITE`, `FOR NO KEY UPDATE`), so concurrent submissions succeed only once; `FieldValidationException` takes a list of field errors; `SubmitCaseIntegrationTest` (rows unchanged on every rejection, 5 concurrent submits → one 200).
 - **CASE-07-02: Submit Case UI** (2026-10-20) — Submit on draft Case Details (`SubmitCaseButton` in `components/`) first checks the draft client-side via `submissionErrors` (`utils/submissionErrors.ts`: title required ≤200, active category, description required, location required ≤255; messages match the API) and lists what's missing in an "This draft isn't ready to submit" dialog with Edit Draft, without calling the API; complete drafts get a "Submit this case?" confirmation with Cancel/Submit; confirming sends `POST /api/v1/cases/{id}/submit` via new `postForJson` client helper (fresh CSRF token), `submitCase()` (`api/cases.ts`) and `useSubmitCase` (in-flight ref guard, resolves `undefined` for ignored duplicates); dialog locked and button loading while submitting; 200 shows "Case submitted." and updates the page in place via new `useCase.replace` (Edit/Submit/Delete gone, Close shown); 400 lists the API's `fieldErrors` with Edit Draft, 409 "This case has already been submitted or closed." and 404 "This case no longer exists…" toasts then reload the case, other failures "We couldn't submit this case. Please try again.", 401 goes to login; one antd `Modal` for both steps (two modals shared an `aria-labelledby` id in tests); `CaseDetailsPage` loads categories once and shares them with the category name and the Submit check (Submit disabled while loading, API checks the category if loading failed); `LegalCase` gains `submittedAt`; `CaseDetailsPage` submit tests.
+- **CASE-08-01: Close Case API** (2026-10-20) — Authenticated, CSRF-protected `POST /api/v1/cases/{id}/close` (`CaseController.close` → `CaseService.closeCase`) closes one of the session's client's submitted cases and returns 200 `CaseResponse`, which now includes `closedAt` (also on create/get/update/submit, `null` until closed) instead of the spec's `{ id, status, closedAt }`; check order: 404 `CASE_NOT_FOUND` (other client's/deleted/nonexistent) → 409 `INVALID_CASE_STATE` "Only submitted cases can be closed." (draft/closed); `LegalCase.close` sets `CLOSED` and `closed_at`, `@PreUpdate` refreshes `updated_at`, `created_at`/`submitted_at` kept; row locked during the check via `findLockedByIdAndClientIdAndDeletedAtIsNull`, so concurrent closes succeed only once; non-UUID IDs 400, unauthenticated/suspended 401, missing/invalid CSRF 403; `CloseCaseIntegrationTest` (rows unchanged on every rejection, 5 concurrent closes → one 200).

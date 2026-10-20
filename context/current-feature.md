@@ -1,18 +1,28 @@
-# Current Feature
+# Current Feature: PROF-01-03 View and Edit Profile UI
 
-<!-- Feature name and short description -->
+Allow clients to view and update their profile through a single page.
 
 ## Status
 
-<!-- Not Started / In Progress / Completed -->
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- Display first name, last name, email, and phone number from the API.
+- Allow editing of first name, last name, and phone number.
+- Email is read-only.
+- Provide Save and Cancel actions.
+- Validate required fields and input lengths.
+- Show loading, success, and error states.
+- Prevent duplicate submissions.
+- Saved changes persist after page refresh.
+- Automated tests cover viewing, editing, validation, and API errors.
 
 ## Notes
 
-<!-- Any extra notes -->
+- API: `GET /api/v1/clients/me` loads the profile; `PATCH /api/v1/clients/me` saves changes (PROF-01-01/02).
+- API rules (PROF-01-02): `{ firstName, lastName, email, phone }`; names required ≤100; phone optional ≤30 with digits, spaces, parentheses, hyphens and a leading `+`; explicit `null`/blank clears phone; email not updatable; 400 `VALIDATION_ERROR` with `fieldErrors`, 404 `PROFILE_NOT_FOUND`, 401, 403 CSRF.
+- Spec: `context/epics/05-profile-settings/stories/PROF-01-view-edit-profile/tasks/PROF-01-03-view-edit-profile-ui.md`.
 
 ## History
 

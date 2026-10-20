@@ -1,18 +1,27 @@
-# Current Feature
-
-<!-- Feature name and short description -->
+# Current Feature: CASE-04-02: Case Details Page
 
 ## Status
 
-<!-- Not Started / In Progress / Completed -->
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- `/cases/:id` fetches the case via `GET /api/v1/cases/:id` (reuse `fetchCase()`/`useCase`).
+- Display title, category, description, location, status, and relevant dates.
+- Actions by status: `DRAFT` — Edit, Delete, Submit; `SUBMITTED` — Close; `CLOSED` — none.
+- Edit navigates to `/cases/:id/edit`.
+- Loading and error states (error with Retry).
+- Not-found message for missing or inaccessible cases (404 `CASE_NOT_FOUND`, malformed-ID 400).
+- Desktop and mobile layouts.
+- Automated FE tests: details shown, actions match status, Edit navigation, not-found, loading and error states.
 
 ## Notes
 
-<!-- Any extra notes -->
+- Spec: `context/epics/03-case-management/stories/CASE-04-view-case-details/tasks/CASE-04-02-case-details-page.md`.
+- Spec's dependency "CASE-04-01 – Get Case Details API" is the endpoint shipped as CASE-03-01 (History).
+- `GET /cases/{id}` returns `categoryId`, not the name — resolve the name via `useLegalCategories` (inactive categories won't be listed; see BKL-01).
+- Backend has `DELETE /cases/{id}` (CASE-04-01) but no Submit/Close endpoints yet; this task only shows the action buttons (disabled); wiring them is CASE-06-02 (Delete), CASE-07-02 (Submit), CASE-08-02 (Close).
+- `CaseDetailsPage.tsx` exists as a placeholder; reuse `CaseStatusTag`, date formatting from `MyCasesPage`, and the not-found `Result` pattern from `EditCasePage`.
 
 ## History
 

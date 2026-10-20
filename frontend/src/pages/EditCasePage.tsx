@@ -1,24 +1,20 @@
 import { useRef } from 'react'
 import { Alert, App, Button, Flex, Form, Result, Spin, Typography } from 'antd'
 import { useNavigate, useParams } from 'react-router'
+import { isCaseNotFound } from '../api/cases'
 import type { CaseStatus, LegalCase, UpdateCaseRequest } from '../api/cases'
-import { ApiError } from '../api/client'
 import CaseForm from '../components/CaseForm'
+import CaseNotFound from '../components/CaseNotFound'
 import type { CaseFormValues } from '../components/CaseForm'
 import { useCase } from '../hooks/useCase'
 import { useCaseFormErrors } from '../hooks/useCaseFormErrors'
 import { useUpdateCase } from '../hooks/useUpdateCase'
-import { caseDetailsPath, paths } from '../routes/paths'
+import { caseDetailsPath } from '../routes/paths'
 
 const STATUS_LABELS: Record<CaseStatus, string> = {
   DRAFT: 'draft',
   SUBMITTED: 'submitted',
   CLOSED: 'closed',
-}
-
-// 404 covers other clients', deleted and nonexistent cases; 400 a malformed ID.
-function isNotFound(error: unknown): boolean {
-  return error instanceof ApiError && (error.status === 404 || error.status === 400)
 }
 
 // Only the fields that differ from the loaded case, normalized like Create Draft. A cleared optional field is sent as null.
@@ -96,19 +92,8 @@ function EditCaseContent({ id }: { id: string }) {
     )
   }
 
-  if (isNotFound(error)) {
-    return (
-      <Result
-        status="404"
-        title="Case not found"
-        subTitle="This case doesn't exist or you don't have access to it."
-        extra={
-          <Button type="primary" onClick={() => navigate(paths.cases)}>
-            Back to My Cases
-          </Button>
-        }
-      />
-    )
+  if (isCaseNotFound(error)) {
+    return <CaseNotFound />
   }
 
   if (!legalCase) {

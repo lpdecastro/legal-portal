@@ -6,10 +6,7 @@ import type { CaseSummary } from '../api/cases'
 import CaseStatusTag from '../components/CaseStatusTag'
 import { useCases } from '../hooks/useCases'
 import { caseDetailsPath, paths } from '../routes/paths'
-
-const dateFormat = new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' })
-
-const formatDate = (iso: string): string => dateFormat.format(new Date(iso))
+import { formatDate } from '../utils/formatDate'
 
 const columns: TableColumnsType<CaseSummary> = [
   {

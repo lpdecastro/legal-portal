@@ -1,4 +1,4 @@
-import { getJson, patchJson, postJson } from './client'
+import { ApiError, getJson, patchJson, postJson } from './client'
 
 export type CaseStatus = 'DRAFT' | 'SUBMITTED' | 'CLOSED'
 
@@ -63,4 +63,10 @@ export function fetchCase(id: string): Promise<LegalCase> {
 // Partially updates one of the signed-in client's drafts; non-drafts answer 409 INVALID_CASE_STATE.
 export function updateCase(id: string, request: UpdateCaseRequest): Promise<LegalCase> {
   return patchJson<LegalCase>(casePath(id), request)
+}
+
+// True when a case load failed because the case is missing or inaccessible: 404 covers other clients', deleted and
+// nonexistent cases; 400 a malformed ID.
+export function isCaseNotFound(error: unknown): boolean {
+  return error instanceof ApiError && (error.status === 404 || error.status === 400)
 }

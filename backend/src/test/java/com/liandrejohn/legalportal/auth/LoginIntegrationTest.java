@@ -86,7 +86,7 @@ class LoginIntegrationTest {
 
         Cookie authenticatedCookie = result.getResponse().getCookie("SESSION");
         assertThat(authenticatedCookie).isNotNull();
-        mockMvc.perform(get(PROTECTED_PATH).cookie(authenticatedCookie)).andExpect(status().isNotFound());
+        mockMvc.perform(get(PROTECTED_PATH).cookie(authenticatedCookie)).andExpect(status().isOk());
     }
 
     @Test

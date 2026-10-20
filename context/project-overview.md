@@ -311,6 +311,7 @@ Common API errors:
 - 401 - UNAUTHORIZED - Missing or expired session
 - 403 - FORBIDDEN - Insufficient permissions
 - 404 - CASE_NOT_FOUND - Case doesn't exist or isn't accessible
+- 404 - PROFILE_NOT_FOUND - Client profile doesn't exist
 - 409 - EMAIL_ALREADY_EXISTS - Registration conflict
 - 409 - INVALID_CASE_STATE - Submitting an already-closed case
 - 429 - RATE_LIMIT_EXCEEDED - Too many requests

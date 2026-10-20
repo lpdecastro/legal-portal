@@ -47,7 +47,7 @@ class ApiDocsTest {
             .andExpect(jsonPath("$.paths.*.*.tags[*]", not(hasSize(0))))
             .andExpect(jsonPath("$.paths.*.*.tags[*]",
                     everyItem(in(new String[] { ApiTags.AUTH, ApiTags.CASES, ApiTags.DASHBOARD,
-                            ApiTags.LEGAL_CATEGORIES }))));
+                            ApiTags.LEGAL_CATEGORIES, ApiTags.PROFILE }))));
     }
 
     @Test

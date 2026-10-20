@@ -1,18 +1,27 @@
-# Current Feature
+# Current Feature: PROF-01-01 Get Client Profile API
 
-<!-- Feature name and short description -->
+Allow authenticated clients to retrieve their own profile information.
 
 ## Status
 
-<!-- Not Started / In Progress / Completed -->
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- `GET /api/v1/clients/me` returns the authenticated client's profile.
+- 200 response: `{ firstName, lastName, email, phone }`.
+- 401 for unauthenticated requests.
+- No sensitive information exposed (no password hash, internal IDs beyond the contract, account status).
+- 404 Profile not found; 500 internal error; all errors as RFC 9457 Problem Details.
+- Automated tests cover successful and unauthorized requests.
 
 ## Notes
 
-<!-- Any extra notes -->
+- Spec: `context/epics/05-profile-settings/stories/PROF-01-view-edit-profile/tasks/PROF-01-01-get-client-profile-api.md`.
+- `client_profiles.phone` already exists (V2 migration, `varchar(30)`, nullable), so `phone` may be `null`.
+- Reuse `ClientProfileRepository.findActiveByUserId` so suspended/disabled/deleted accounts get 401 like other endpoints.
+- Tag the controller with an `ApiTags` area (new `Clients`/`Profile` tag) so `ApiDocsTest` passes.
+- Related endpoints `PATCH /clients/me` and `PATCH /clients/me/password` come in later tasks.
 
 ## History
 

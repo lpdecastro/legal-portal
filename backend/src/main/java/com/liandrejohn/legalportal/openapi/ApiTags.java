@@ -11,6 +11,8 @@ public final class ApiTags {
 
     public static final String LEGAL_CATEGORIES = "Legal Categories";
 
+    public static final String PROFILE = "Profile";
+
     private ApiTags() {
     }
 

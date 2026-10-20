@@ -1,29 +1,18 @@
-# Current Feature: CASE-11-01 Search Cases API
+# Current Feature
 
-Allow authenticated clients to search their own cases by title on `GET /api/v1/cases`.
+<!-- Feature name and short description -->
 
 ## Status
 
-Complete
+<!-- Not Started / In Progress / Completed -->
 
 ## Goals
 
-- `GET /api/v1/cases?search=` matches case titles partially and case-insensitively.
-- Combines with `status`, `page` and `size` (e.g. `?search=property&status=SUBMITTED&page=0&size=10`); search and status applied before pagination, so page metadata counts matching cases only.
-- Empty or omitted `search` returns all of the client's cases (subject to `status`).
-- Only the authenticated client's cases; soft-deleted cases excluded.
-- No matches returns empty `content`.
-- Errors in standard Problem Details format; 401 for unauthenticated requests.
-- Integration tests: partial title match, case-insensitive match, no matches, search + status + pagination, empty/omitted search, other clients' cases excluded, unauthenticated 401.
+<!-- Goals and requirements -->
 
 ## Notes
 
-- Type: BE. Story: CASE-11 – Search Cases.
-- Builds on CASE-03-01 (List My Cases API), CASE-09-01 (Paginate Cases API) and CASE-10-01 (Filter Cases API): keep the `createdAt` desc, `id` desc sort, the category `@EntityGraph` and the existing `status`/`page`/`size` validation.
-- Response shape stays `{ content, page: { size, number, totalElements, totalPages } }` (spec example omits `page`).
-- Escape `%`/`_` (LIKE wildcards) in the search term so they match literally.
-- Errors: 401 unauthorized, 500 internal error.
-- Done when all ACs are met and backend tests pass.
+<!-- Any extra notes -->
 
 ## History
 
@@ -66,3 +55,4 @@ Complete
 - **CASE-09-02: Pagination UI** (2026-10-20) — `MyCasesPage` fetches `GET /api/v1/cases?page={page}&size={size}` (page 0, size 10 to start) via `fetchCases({ page, size })` (`api/cases.ts`, returns `content` plus `PageMetadata`) and `useCases({ page, size })` (loading derived from a request key, last page kept while the next loads); `CasePagination` (`components/`) below the table/cards shows "Page X of Y · N cases", antd `Pagination` (previous/next disabled at the ends, `small`/`showLessItems` on mobile) and its own page-size `Select` (10/20/50, "Cases per page"), since antd's built-in size changer is hidden below `sm` by its CSS; changing the size resets to the first page; first load shows the full `Spin`, later pages keep the current cases under a spinner with controls disabled; failed loads show the error `Alert` and Retry reloads the same page; a page past the end (cases deleted elsewhere) moves back to the last page; no controls on the empty state; page not kept in the URL, so returning from a case starts at page 1; `MyCasesPage` pagination tests, `RequireAuth` mocks include page metadata; backlog BKL-05 (Sort Cases).
 - **CASE-10-01: Filter Cases API** (2026-10-20) — `GET /api/v1/cases` takes an optional `status` (`DRAFT`, `SUBMITTED`, `CLOSED`) that combines with `page`/`size`; `CaseService.listCases(userId, status, page, size)` uses `LegalCaseRepository.findByClientIdAndStatusAndDeletedAtIsNull` (category `@EntityGraph`) when given, so the filter applies before paging and page metadata counts matching cases only; omitted status returns every status; ownership, soft deletion and `createdAt` desc/`id` desc order unchanged; no matches return empty `content` with zero totals; unknown values (case-sensitive, so `submitted` too) get 400 `VALIDATION_ERROR` "Parameter 'status' has an invalid value." via the existing `MethodArgumentTypeMismatchException` handler; `ListCasesIntegrationTest` status filter tests.
 - **CASE-10-02: Filter Cases UI** (2026-10-20) — `CaseStatusFilter` (`components/`, antd `Select` "Filter by status", full width on mobile) above the cases on `/cases` offers All Statuses/Draft/Submitted/Closed (labels match `CaseStatusTag`; "All Statuses" is an `ALL` sentinel since antd's `Select` can't hold `undefined`); `fetchCases`/`useCases` take an optional `status` (`CaseListRequest` extends `PageRequest`), sent as `status=` only when selected and part of the `useCases` request key; `MyCasesPage` keeps page, size and status in one request state, so the filter persists across page and page-size changes and a new filter returns to page 1 keeping the size; filtered results with no matches show `Empty` "No {status} cases found." with Show All Statuses and the filter still visible (a spinner while the next filter loads instead of the previous filter's empty state); clients with no cases at all keep "You don't have any cases yet." without the filter; the filter stays visible on load errors and Retry reloads with the same filter; filter not kept in the URL; `MyCasesPage` status filter tests.
+- **CASE-11-01: Search Cases API** (2026-10-20) — `GET /api/v1/cases` takes an optional `search` matching case titles partially and case-insensitively (`lower(title) like`), combining with `status`/`page`/`size`; filters apply before paging, so page metadata counts matching cases only; blank or omitted `search` returns every case, surrounding whitespace ignored; `%`, `_` and `\` match literally (Spring Data `EscapeCharacter`); `CaseService.listCases(userId, status, search, page, size)` builds the query from `LegalCaseSpecifications` (`visibleTo` ownership + soft deletion, `hasStatus`, `titleContains`) via `JpaSpecificationExecutor`, replacing the per-filter derived queries; `LegalCaseRepository.findAll(Specification, Pageable)` keeps the category `@EntityGraph`; `createdAt` desc/`id` desc order unchanged; no search length limit; `ListCasesIntegrationTest` search tests.

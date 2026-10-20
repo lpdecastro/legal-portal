@@ -1,18 +1,30 @@
-# Current Feature
+# Current Feature: CASE-09-01 Paginate Cases API
 
-<!-- Feature name and short description -->
+Allow authenticated clients to retrieve their cases with server-side pagination via `GET /api/v1/cases?page=0&size=10`.
 
 ## Status
 
-<!-- Not Started / In Progress / Completed -->
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- Return only the requested page of the authenticated client's cases.
+- Zero-based `page` (default `0`); `size` default `10`, max `100`.
+- Sort by `createdAt` desc by default, with a stable secondary sort by `id`.
+- Return `page` metadata `{ size, number, totalElements, totalPages }` alongside `content`.
+- Return an empty `content` array for pages beyond the last page.
+- Reject negative page numbers and invalid page sizes with 400 (standard Problem Details format).
+- Exclude soft-deleted cases and other clients' cases.
+- Tests: different pages retrievable; metadata correct; consistent order across pages; out-of-range pages empty; invalid params 400; other clients' cases excluded; unauthenticated 401.
 
 ## Notes
 
-<!-- Any extra notes -->
+- Type: BE. Story: CASE-09 – Paginate Cases. Depends on CASE-03-01 (List My Cases API) and auth/session management.
+- Extends existing `CaseController.list` → `CaseService.listCases` (`CaseListResponse` of `CaseSummaryResponse`, already `{ content }`); currently uses `LegalCaseRepository.findByClientIdAndDeletedAtIsNullOrderByCreatedAtDescIdDesc` with `@EntityGraph` for categories — switch to a `Pageable` query (keep the entity graph; watch for in-memory pagination warnings).
+- Per `project-overview.md`: Spring Data `Pageable` with a server-enforced max page size. Spec says reject invalid sizes (400) rather than silently clamp — decide how `size > 100` is handled (reject vs clamp) during start.
+- Error format: 400 `VALIDATION_ERROR` via `ApiExceptionHandler`.
+- Update `ListCasesIntegrationTest`; frontend `fetchCases()` unwraps `content`, so the added `page` field shouldn't break it.
+- Done when all ACs met and BE tests pass.
 
 ## History
 

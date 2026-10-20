@@ -16,6 +16,7 @@ import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 /** Turns controller exceptions into Problem Details responses. */
@@ -36,6 +37,23 @@ class ApiExceptionHandler {
             .getFieldErrors()
             .stream()
             .map((error) -> new FieldErrorDetail(error.getField(), error.getDefaultMessage()))
+            .sorted(Comparator.comparing(FieldErrorDetail::field).thenComparing(FieldErrorDetail::message))
+            .toList();
+
+        return respond(request, validationProblem(fieldErrors, request));
+    }
+
+    /** Constraint violations on controller method parameters, e.g. a query parameter out of range. */
+    @ExceptionHandler(HandlerMethodValidationException.class)
+    ResponseEntity<ProblemDetail> handleMethodValidation(HandlerMethodValidationException ex,
+            HttpServletRequest request) {
+        List<FieldErrorDetail> fieldErrors = ex.getParameterValidationResults()
+            .stream()
+            .flatMap((result) -> result.getResolvableErrors()
+                .stream()
+                .map((error) -> new FieldErrorDetail(result.getMethodParameter().getParameterName(),
+                        error.getDefaultMessage())))
+            .distinct()
             .sorted(Comparator.comparing(FieldErrorDetail::field).thenComparing(FieldErrorDetail::message))
             .toList();
 

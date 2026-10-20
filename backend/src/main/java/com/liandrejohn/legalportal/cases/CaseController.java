@@ -4,6 +4,8 @@ import java.net.URI;
 import java.util.UUID;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -14,6 +16,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -29,6 +32,10 @@ class CaseController {
 
     static final String CASES_PATH = "/api/v1/cases";
 
+    static final String DEFAULT_PAGE_SIZE = "10";
+
+    static final int MAX_PAGE_SIZE = 100;
+
     private final CaseService caseService;
 
     /**
@@ -42,10 +49,17 @@ class CaseController {
         return ResponseEntity.created(URI.create(CASES_PATH + "/" + created.id())).body(created);
     }
 
-    /** Lists the session's client's cases, newest first. */
+    /**
+     * Lists one zero-based page of the session's client's cases, newest first. Out-of-range {@code page} or
+     * {@code size} values are rejected with 400 rather than clamped.
+     */
     @GetMapping
-    CaseListResponse list(@AuthenticationPrincipal AuthenticatedUser user) {
-        return caseService.listCases(user.getId());
+    CaseListResponse list(@AuthenticationPrincipal AuthenticatedUser user,
+            @RequestParam(defaultValue = "0") @Min(value = 0, message = "Page must be 0 or greater") int page,
+            @RequestParam(defaultValue = DEFAULT_PAGE_SIZE)
+            @Min(value = 1, message = "Size must be between 1 and " + MAX_PAGE_SIZE)
+            @Max(value = MAX_PAGE_SIZE, message = "Size must be between 1 and " + MAX_PAGE_SIZE) int size) {
+        return caseService.listCases(user.getId(), page, size);
     }
 
     /** Returns one of the session's client's cases; any other case is answered with 404. */

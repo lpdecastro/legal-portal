@@ -6,6 +6,8 @@ import java.util.Optional;
 import java.util.UUID;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,6 +24,8 @@ import com.liandrejohn.legalportal.user.UserStatus;
 @Service
 @RequiredArgsConstructor
 class CaseService {
+
+    private static final Sort NEWEST_FIRST = Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id"));
 
     private final LegalCaseRepository legalCaseRepository;
 
@@ -40,15 +44,16 @@ class CaseService {
         return CaseResponse.from(legalCaseRepository.save(draft));
     }
 
-    /** Lists the client's own non-deleted cases in any status, newest first. */
+    /**
+     * Returns one zero-based page of the client's own non-deleted cases in any status, newest first; cases created at
+     * the same instant are ordered by ID so pages never overlap or skip a case. Pages past the last one are empty.
+     */
     @Transactional(readOnly = true)
-    CaseListResponse listCases(UUID userId) {
+    CaseListResponse listCases(UUID userId, int page, int size) {
         ClientProfile client = findActiveClient(userId);
-        return new CaseListResponse(
-                legalCaseRepository.findByClientIdAndDeletedAtIsNullOrderByCreatedAtDescIdDesc(client.getId())
-                    .stream()
-                    .map(CaseSummaryResponse::from)
-                    .toList());
+        PageRequest pageRequest = PageRequest.of(page, size, NEWEST_FIRST);
+        return CaseListResponse.from(legalCaseRepository.findByClientIdAndDeletedAtIsNull(client.getId(), pageRequest)
+            .map(CaseSummaryResponse::from));
     }
 
     /** Returns one of the client's own non-deleted cases, in any status. */

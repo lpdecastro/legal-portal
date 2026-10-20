@@ -1,10 +1,11 @@
 package com.liandrejohn.legalportal.cases;
 
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import jakarta.persistence.LockModeType;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
@@ -21,8 +22,8 @@ public interface LegalCaseRepository extends JpaRepository<LegalCase, UUID> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     Optional<LegalCase> findLockedByIdAndClientIdAndDeletedAtIsNull(UUID id, UUID clientId);
 
-    /** The owner's non-deleted cases, newest first, with their categories fetched in the same query. */
+    /** One page of the owner's non-deleted cases, with their categories fetched in the same query. */
     @EntityGraph(attributePaths = "category")
-    List<LegalCase> findByClientIdAndDeletedAtIsNullOrderByCreatedAtDescIdDesc(UUID clientId);
+    Page<LegalCase> findByClientIdAndDeletedAtIsNull(UUID clientId, Pageable pageable);
 
 }

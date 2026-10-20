@@ -1,5 +1,7 @@
 package com.liandrejohn.legalportal.cases;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -11,6 +13,7 @@ import com.liandrejohn.legalportal.category.LegalCategory;
 import com.liandrejohn.legalportal.category.LegalCategoryRepository;
 import com.liandrejohn.legalportal.client.ClientProfile;
 import com.liandrejohn.legalportal.client.ClientProfileRepository;
+import com.liandrejohn.legalportal.error.FieldErrorDetail;
 import com.liandrejohn.legalportal.error.FieldValidationException;
 import com.liandrejohn.legalportal.security.AuthenticationRequiredException;
 import com.liandrejohn.legalportal.user.User;
@@ -90,6 +93,55 @@ class CaseService {
             throw new InvalidCaseStateException("Only draft cases can be deleted.");
         }
         legalCase.softDelete();
+    }
+
+    /**
+     * Submits one of the client's own drafts once its stored fields are complete. Ownership is checked before status,
+     * as for updates. The row is locked while it is checked, so of two concurrent submissions only the first succeeds
+     * and the second sees {@code SUBMITTED}.
+     */
+    @Transactional
+    CaseResponse submitDraft(UUID userId, UUID caseId) {
+        ClientProfile client = findActiveClient(userId);
+        LegalCase legalCase = legalCaseRepository.findLockedByIdAndClientIdAndDeletedAtIsNull(caseId, client.getId())
+            .orElseThrow(CaseNotFoundException::new);
+        if (legalCase.getStatus() != CaseStatus.DRAFT) {
+            throw new InvalidCaseStateException("Only draft cases can be submitted.");
+        }
+
+        List<FieldErrorDetail> fieldErrors = submissionErrors(legalCase);
+        if (!fieldErrors.isEmpty()) {
+            throw new FieldValidationException(fieldErrors);
+        }
+        legalCase.submit();
+        // Flushing runs @PreUpdate, so the response carries the new updatedAt
+        return CaseResponse.from(legalCaseRepository.saveAndFlush(legalCase));
+    }
+
+    /** The submission rules, checked against the stored draft; messages match Create Draft's where they overlap. */
+    private List<FieldErrorDetail> submissionErrors(LegalCase legalCase) {
+        List<FieldErrorDetail> errors = new ArrayList<>();
+        if (isBlank(legalCase.getTitle())) {
+            errors.add(new FieldErrorDetail("title", "Title is required"));
+        } else if (legalCase.getTitle().length() > 200) {
+            errors.add(new FieldErrorDetail("title", "Title must not exceed 200 characters"));
+        }
+        if (legalCategoryRepository.findByIdAndActiveTrue(legalCase.getCategory().getId()).isEmpty()) {
+            errors.add(new FieldErrorDetail("categoryId", "Select an active legal category"));
+        }
+        if (isBlank(legalCase.getDescription())) {
+            errors.add(new FieldErrorDetail("description", "Description is required"));
+        }
+        if (isBlank(legalCase.getLocation())) {
+            errors.add(new FieldErrorDetail("location", "Location is required"));
+        } else if (legalCase.getLocation().length() > 255) {
+            errors.add(new FieldErrorDetail("location", "Location must not exceed 255 characters"));
+        }
+        return errors;
+    }
+
+    private static boolean isBlank(String value) {
+        return value == null || value.isBlank();
     }
 
     /** Unknown and inactive categories get the same message, so IDs of hidden categories aren't revealed. */

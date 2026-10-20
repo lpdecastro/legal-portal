@@ -15,8 +15,12 @@ public class FieldValidationException extends ApiException {
     private final List<FieldErrorDetail> fieldErrors;
 
     public FieldValidationException(String field, String message) {
+        this(List.of(new FieldErrorDetail(field, message)));
+    }
+
+    public FieldValidationException(List<FieldErrorDetail> fieldErrors) {
         super(HttpStatus.BAD_REQUEST, ApiExceptionHandler.VALIDATION_ERROR, ApiExceptionHandler.VALIDATION_DETAIL);
-        this.fieldErrors = List.of(new FieldErrorDetail(field, message));
+        this.fieldErrors = List.copyOf(fieldErrors);
     }
 
 }

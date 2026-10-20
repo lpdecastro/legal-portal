@@ -1,18 +1,31 @@
-# Current Feature
+# Current Feature: CASE-07-01 Submit Case API
 
-<!-- Feature name and short description -->
+Authenticated, CSRF-protected `POST /api/v1/cases/{id}/submit` that submits one of the session's client's draft cases.
 
 ## Status
 
-<!-- Not Started / In Progress / Completed -->
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- `POST /api/v1/cases/{id}/submit` (no body) submits the session's client's draft and returns 200 with the updated case: `{ id, title, categoryId, description, location, status, createdAt, updatedAt, submittedAt }`.
+- Only `DRAFT` cases can be submitted; submitted and closed cases get 409 `INVALID_CASE_STATE`.
+- Another client's, soft-deleted and nonexistent cases get 404 `CASE_NOT_FOUND`.
+- Submission requires title (required, ≤200), an active legal category, non-blank description, and non-blank location (≤255); incomplete cases or unknown/inactive categories get 400 `VALIDATION_ERROR` with `fieldErrors`.
+- Success sets status `SUBMITTED`, sets `submitted_at`, refreshes `updated_at`, and leaves `created_at` unchanged.
+- Failed submissions leave the case unchanged.
+- Concurrent requests can't submit the same case more than once.
+- Non-UUID IDs get 400, unauthenticated/suspended accounts 401, missing/invalid CSRF 403; all errors are Problem Details.
+- Integration tests cover every case in the spec's Testing section, including concurrency.
 
 ## Notes
 
-<!-- Any extra notes -->
+- Spec: `context/epics/03-case-management/stories/CASE-07-submit-case/tasks/CASE-07-01-submit-case-api.md`.
+- `cases.submitted_at` already exists (V4) and is mapped on `LegalCase.submittedAt`; `CaseResponse` needs a `submittedAt` field (affects create/get/update responses too).
+- Follow Update/Delete Draft patterns: `CaseController` → `CaseService`, ownership via `LegalCaseRepository.findByIdAndClientIdAndDeletedAtIsNull`, `CaseNotFoundException`, `InvalidCaseStateException`, `FieldValidationException`, `saveAndFlush` so `@PreUpdate` refreshes `updatedAt`.
+- Check order: 404 → 409 → 400 field errors (the case's stored data is what's validated).
+- Concurrency: needs a row lock (e.g. `PESSIMISTIC_WRITE` on the lookup) or a conditional update/optimistic version so a second request sees `SUBMITTED` and gets 409.
+- Validation messages/limits should match Create Draft (`CreateCaseRequest`) where they overlap.
 
 ## History
 

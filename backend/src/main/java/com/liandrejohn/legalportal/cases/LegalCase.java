@@ -90,6 +90,12 @@ public class LegalCase {
         this.location = location;
     }
 
+    /** Moves the draft to {@code SUBMITTED}. Callers check that it is a complete draft. */
+    public void submit() {
+        status = CaseStatus.SUBMITTED;
+        submittedAt = Instant.now().truncatedTo(ChronoUnit.MICROS);
+    }
+
     /** Soft-deletes the case; the row stays and owner lookups stop finding it. Callers check that it is a draft. */
     public void softDelete() {
         deletedAt = Instant.now().truncatedTo(ChronoUnit.MICROS);

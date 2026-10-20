@@ -61,6 +61,12 @@ class CaseController {
         return caseService.updateDraft(user.getId(), id, request);
     }
 
+    /** Submits one of the session's client's drafts. */
+    @PostMapping("/{id}/submit")
+    CaseResponse submit(@AuthenticationPrincipal AuthenticatedUser user, @PathVariable UUID id) {
+        return caseService.submitDraft(user.getId(), id);
+    }
+
     /** Soft-deletes one of the session's client's drafts. */
     @DeleteMapping("/{id}")
     ResponseEntity<Void> delete(@AuthenticationPrincipal AuthenticatedUser user, @PathVariable UUID id) {

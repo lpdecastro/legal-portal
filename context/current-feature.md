@@ -1,30 +1,18 @@
-# Current Feature: CASE-06-02 Delete Draft UI
+# Current Feature
 
-Delete action on the Case Details page that soft-deletes a draft after confirmation.
+<!-- Feature name and short description -->
 
 ## Status
 
-In Progress
+<!-- Not Started / In Progress / Completed -->
 
 ## Goals
 
-- Delete action on Case Details is available (enabled) only for `DRAFT` cases; submitted/closed cases don't show it
-- Clicking Delete opens a confirmation dialog with Cancel and Delete
-- Cancel closes the dialog without calling the API
-- Confirming calls `DELETE /api/v1/cases/{id}` (CSRF token in `X-XSRF-TOKEN`, 204 no body)
-- Delete shows a loading indicator and ignores duplicate requests while in flight
-- Success shows a success message and navigates to My Cases (`/cases`)
-- API failures show an error message and stay on the page
-- Already-deleted/inaccessible cases (404 `CASE_NOT_FOUND`) and non-draft (409 `INVALID_CASE_STATE`) show an appropriate error message
-- Unauthenticated clients are redirected to login (401 → `onUnauthorized` → `RequireAuth`)
-- RTL + MSW tests cover every item in the spec's Testing section
+<!-- Goals and requirements -->
 
 ## Notes
 
-- Spec: `context/epics/03-case-management/stories/CASE-06-delete-draft/tasks/CASE-06-02-delete-draft-ui.md`
-- Dependencies: Delete Draft API (done as History "CASE-04-01: Delete Draft API"), Get Case Details API, Case Details Page (CASE-04-02), auth + protected routes.
-- `CaseDetailsPage` already renders a disabled Delete button for drafts — wire it up.
-- Reuse patterns: `postNoContent`/`sendWithCsrf` in `api/client.ts` (likely add a `deleteNoContent` helper), `useUpdateCase`/`useLogout` hook shape, `isCaseNotFound` in `api/cases.ts`.
+<!-- Any extra notes -->
 
 ## History
 
@@ -58,3 +46,4 @@ In Progress
 - **BKL-03: SQL Debug Logging** (2026-10-18) — `SQL_LOG_LEVEL` sets the `org.hibernate.SQL` log level via `logging.level.org.hibernate.SQL: ${SQL_LOG_LEVEL:INFO}` in `application.yaml` (explicit placeholder, since `.env` is imported as a properties file and Boot's relaxed `LOGGING_LEVEL_*` binding only applies to real env vars); default `INFO` logs no SQL, `DEBUG` in `.env` logs each executed statement after a restart; bind parameters stay unlogged (user data); documented in `.env.example`; `SqlLogLevelTest` (bare context, no DB; default check skipped when the local `.env` sets the variable, level reset after each test).
 - **CASE-03-02: My Cases Page** (2026-10-20) — `MyCasesPage` on `/cases` loads the client's cases via `fetchCases()` (`api/cases.ts`, `CaseSummary`/`CaseListResponse` types, unwraps `content`) and `useCases` (same loading/error/`retry` shape as `useLegalCategories`); desktop (`md`+) shows an antd `Table` (title link, category, status, created date as "Oct 18, 2026" via `Intl.DateTimeFormat('en-US')`, newest first as returned) whose rows navigate to `caseDetailsPath(id)` (title link stops propagation to avoid a double navigation); mobile shows a vertical stack of linked `Card`s (antd `List` is deprecated in antd 6); loading `Spin` "Loading cases…", error `Alert` with Retry, `Empty` "You don't have any cases yet." with Create Case; reusable `CaseStatusTag` (Draft/Submitted/Closed); `MyCasesPage` RTL + MSW tests (desktop via a `matchMedia` override); `RequireAuth` tests mock `GET /cases`.
 - **CASE-04-02: Case Details Page** (2026-10-20) — `CaseDetailsPage` on `/cases/:id` loads the case via `fetchCase()`/`useCase` and shows title, `CaseStatusTag`, category name (resolved from `useLegalCategories`; "Unavailable" when not active), location, created/last-updated dates and description (missing optional fields "Not provided") in an antd `Descriptions` card (2 columns on `md`+, 1 on mobile); status actions: Draft Edit/Submit/Delete, Submitted Close, Closed none — Edit navigates to `editCasePath(id)`, Submit/Delete/Close render disabled until CASE-07-02/CASE-06-02/CASE-08-02; loading `Spin`, error `Alert` with Retry, shared `CaseNotFound` `Result` for 404/400 (also used by `EditCasePage`); `formatDate` moved to `utils/formatDate.ts` and `isCaseNotFound` to `api/cases.ts`; page keyed by ID; `CaseDetailsPage` RTL + MSW tests; backlog BKL-04 (Cancel on Edit Draft).
+- **CASE-06-02: Delete Draft UI** (2026-10-20) — Delete on draft Case Details (`DeleteCaseButton` in `components/`) opens an antd `Modal` "Delete this draft?" with Cancel/Delete; confirming sends `DELETE /api/v1/cases/{id}` via new `deleteNoContent` client helper (fresh CSRF token), `deleteCase()` (`api/cases.ts`) and `useDeleteCase` (in-flight ref guard, resolves `false` for ignored duplicates); Delete buttons show a spinner and the dialog can't be cancelled/dismissed while deleting; 204 shows "Draft deleted." and navigates to My Cases; 404 "This case no longer exists or you no longer have access to it.", 409 "Only draft cases can be deleted.", other failures "We couldn't delete this case. Please try again." toasts, staying on the page; 401 shows no toast and `RequireAuth` sends the client to login; `renderWithProviders` disables antd motion (jsdom never ends animations, so closed dialogs never hid); `CaseDetailsPage` delete tests; coding standard "Put stateful components in their own file".

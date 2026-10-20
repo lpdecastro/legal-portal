@@ -1,18 +1,27 @@
-# Current Feature
+# Current Feature: PROF-01-02: Update Client Profile API
 
-<!-- Feature name and short description -->
+Allow authenticated clients to update their personal information.
 
 ## Status
 
-<!-- Not Started / In Progress / Completed -->
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- `PATCH /api/v1/clients/me` updates the session's client's first name, last name and phone number.
+- Email cannot be modified.
+- First name and last name are required; phone number is optional.
+- Invalid inputs return 400 `VALIDATION_ERROR` with `fieldErrors`.
+- Only the authenticated client's profile can be updated.
+- 200 returns `{ firstName, lastName, email, phone }`.
+- Errors: 400 validation, 401 unauthorized, 404 `PROFILE_NOT_FOUND`, 500 internal (RFC 9457 Problem Details).
+- Automated tests cover successful updates, validation errors, and unauthorized requests.
 
 ## Notes
 
-<!-- Any extra notes -->
+- Spec: `context/epics/05-profile-settings/stories/PROF-01-view-edit-profile/tasks/PROF-01-02-update-client-profile-api.md`.
+- Builds on PROF-01-01 (`GET /api/v1/clients/me`, `ClientProfileController`/`ClientProfileService`, `ClientProfileResponse`, `ProfileNotFoundException`).
+- State-changing request: CSRF-protected (`X-XSRF-TOKEN`).
 
 ## History
 

@@ -56,4 +56,11 @@ public class ClientProfile {
         this.lastName = lastName;
     }
 
+    /** Replaces the client's personal details. Callers have validated them. */
+    public void updateDetails(String firstName, String lastName, String phone) {
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.phone = phone;
+    }
+
 }

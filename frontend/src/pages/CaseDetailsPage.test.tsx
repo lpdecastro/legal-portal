@@ -26,6 +26,7 @@ const DRAFT = {
   status: 'DRAFT',
   createdAt: '2026-10-17T10:00:00Z',
   updatedAt: '2026-10-18T10:00:00Z',
+  submittedAt: null,
 }
 
 const CSRF = { token: 'csrf-token', headerName: 'X-XSRF-TOKEN' }
@@ -75,6 +76,34 @@ async function openDeleteDialog() {
 }
 
 const confirmButton = (dialog: HTMLElement) => within(dialog).getByRole('button', { name: /delete/i })
+
+function mockSubmit(resolver: Parameters<typeof http.post>[1]) {
+  server.use(
+    http.get('*/api/v1/auth/csrf', () => HttpResponse.json(CSRF)),
+    http.post(`*/api/v1/cases/${CASE_ID}/submit`, resolver),
+  )
+}
+
+const SUBMITTED_AT = '2026-10-19T10:00:00Z'
+const SUBMITTED = { ...DRAFT, status: 'SUBMITTED', updatedAt: SUBMITTED_AT, submittedAt: SUBMITTED_AT }
+
+async function clickSubmit() {
+  const user = userEvent.setup()
+  // Submit is disabled until the categories have loaded.
+  await waitFor(() => expect(button('submit')).toBeEnabled())
+  await user.click(button('submit') as HTMLElement)
+  return user
+}
+
+async function openSubmitDialog() {
+  const user = await clickSubmit()
+  const dialog = await screen.findByRole('dialog', { name: 'Submit this case?' })
+  return { user, dialog }
+}
+
+const incompleteDialog = () => screen.findByRole('dialog', { name: "This draft isn't ready to submit" })
+
+const submitConfirm = (dialog: HTMLElement) => within(dialog).getByRole('button', { name: /submit/i })
 
 const button = (name: string) => screen.queryByRole('button', { name: new RegExp(name, 'i') })
 
@@ -282,6 +311,212 @@ describe('CaseDetailsPage', () => {
 
       const { user, dialog } = await openDeleteDialog()
       await user.click(confirmButton(dialog))
+
+      expect(await screen.findByRole('heading', { name: 'Log in' })).toBeInTheDocument()
+    })
+  })
+
+  describe('submit', () => {
+    it('asks for confirmation before submitting a complete draft', async () => {
+      mockApi()
+      renderPage()
+
+      const { dialog } = await openSubmitDialog()
+
+      expect(within(dialog).getByRole('button', { name: /cancel/i })).toBeInTheDocument()
+      expect(submitConfirm(dialog)).toBeInTheDocument()
+    })
+
+    it('does not submit when the client cancels', async () => {
+      let submitted = false
+      mockApi()
+      mockSubmit(() => {
+        submitted = true
+        return HttpResponse.json(SUBMITTED)
+      })
+      renderPage()
+
+      const { user, dialog } = await openSubmitDialog()
+      await user.click(within(dialog).getByRole('button', { name: /cancel/i }))
+
+      await waitFor(() => expect(dialog).not.toBeVisible())
+      expect(submitted).toBe(false)
+      expect(screen.getByText('Draft')).toBeInTheDocument()
+    })
+
+    it.each([
+      [
+        'missing description and blank location',
+        { description: null, location: '  ' },
+        ['Description is required', 'Location is required'],
+      ],
+      ['a title over 200 characters', { title: 'x'.repeat(201) }, ['Title must not exceed 200 characters']],
+      ['a location over 255 characters', { location: 'x'.repeat(256) }, ['Location must not exceed 255 characters']],
+      ['an inactive category', { categoryId: 'c-inactive' }, ['Select an active legal category']],
+    ])('lists what is wrong without calling the API for %s', async (_, changes, messages) => {
+      let submitted = false
+      mockApi({ get: () => HttpResponse.json({ ...DRAFT, ...changes }) })
+      mockSubmit(() => {
+        submitted = true
+        return HttpResponse.json(SUBMITTED)
+      })
+      renderPage()
+
+      await clickSubmit()
+      const dialog = await incompleteDialog()
+
+      for (const text of messages) {
+        expect(within(dialog).getByText(text)).toBeInTheDocument()
+      }
+      expect(screen.queryByRole('dialog', { name: 'Submit this case?' })).not.toBeInTheDocument()
+      expect(submitted).toBe(false)
+    })
+
+    it('offers Edit Draft for an incomplete draft', async () => {
+      mockApi({ get: () => HttpResponse.json({ ...DRAFT, description: null }) })
+      renderPage()
+
+      const user = await clickSubmit()
+      await user.click(
+        within(await incompleteDialog()).getByRole('button', {
+          name: /edit draft/i,
+        }),
+      )
+
+      expect(await screen.findByRole('heading', { name: `Edit ${CASE_ID}` })).toBeInTheDocument()
+    })
+
+    it('submits with the CSRF token, confirms and shows the case as submitted', async () => {
+      let csrfHeader: string | null = null
+      mockApi()
+      mockSubmit(({ request }) => {
+        csrfHeader = request.headers.get(CSRF.headerName)
+        return HttpResponse.json(SUBMITTED)
+      })
+      renderPage()
+
+      const { user, dialog } = await openSubmitDialog()
+      await user.click(submitConfirm(dialog))
+
+      expect(await screen.findByText('Case submitted.')).toBeInTheDocument()
+      expect(screen.getByText('Submitted')).toBeInTheDocument()
+      expect(screen.getByText('Oct 19, 2026')).toBeInTheDocument()
+      expect(csrfHeader).toBe(CSRF.token)
+      expect(button('close')).toBeInTheDocument()
+      for (const name of ['edit', 'submit', 'delete']) {
+        expect(button(name)).not.toBeInTheDocument()
+      }
+    })
+
+    it('shows a loading indicator and sends only one request while submitting', async () => {
+      let calls = 0
+      mockApi()
+      mockSubmit(async () => {
+        calls += 1
+        await delay('infinite')
+        return HttpResponse.json(SUBMITTED)
+      })
+      renderPage()
+
+      const { user, dialog } = await openSubmitDialog()
+      const confirm = submitConfirm(dialog)
+      await user.click(confirm)
+
+      await waitFor(() => expect(confirm).toHaveClass('ant-btn-loading'))
+      await user.click(confirm)
+      expect(within(dialog).getByRole('button', { name: /cancel/i })).toBeDisabled()
+      expect(calls).toBe(1)
+    })
+
+    it("lists the API's validation errors and offers Edit Draft", async () => {
+      mockApi()
+      mockSubmit(() =>
+        HttpResponse.json(
+          {
+            status: 400,
+            errorCode: 'VALIDATION_ERROR',
+            detail: 'Validation failed.',
+            fieldErrors: [{ field: 'categoryId', message: 'Select an active legal category' }],
+          },
+          { status: 400, headers: problemHeaders },
+        ),
+      )
+      renderPage()
+
+      const { user, dialog } = await openSubmitDialog()
+      await user.click(submitConfirm(dialog))
+      const incomplete = await incompleteDialog()
+
+      expect(within(incomplete).getByText('Select an active legal category')).toBeInTheDocument()
+      await user.click(within(incomplete).getByRole('button', { name: /edit draft/i }))
+      expect(await screen.findByRole('heading', { name: `Edit ${CASE_ID}` })).toBeInTheDocument()
+    })
+
+    it('shows an error and stays on the page when the API fails', async () => {
+      mockApi()
+      mockSubmit(() => problem(500, 'INTERNAL_ERROR', 'Unexpected error.'))
+      renderPage()
+
+      const { user, dialog } = await openSubmitDialog()
+      await user.click(submitConfirm(dialog))
+
+      expect(await screen.findByText("We couldn't submit this case. Please try again.")).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Custody dispute' })).toBeInTheDocument()
+      expect(screen.getByText('Draft')).toBeInTheDocument()
+    })
+
+    it('says so and refreshes the case when it was already submitted', async () => {
+      let loads = 0
+      mockApi({
+        get: () => {
+          loads += 1
+          return HttpResponse.json(loads === 1 ? DRAFT : SUBMITTED)
+        },
+      })
+      mockSubmit(() => problem(409, 'INVALID_CASE_STATE', 'Only draft cases can be submitted.'))
+      renderPage()
+
+      const { user, dialog } = await openSubmitDialog()
+      await user.click(submitConfirm(dialog))
+
+      expect(await screen.findByText('This case has already been submitted or closed.')).toBeInTheDocument()
+      expect(await screen.findByText('Submitted')).toBeInTheDocument()
+      expect(button('submit')).not.toBeInTheDocument()
+    })
+
+    it('says so and refreshes when the case was deleted or is inaccessible', async () => {
+      let loads = 0
+      mockApi({
+        get: () => {
+          loads += 1
+          return loads === 1 ? HttpResponse.json(DRAFT) : problem(404, 'CASE_NOT_FOUND', 'Case not found.')
+        },
+      })
+      mockSubmit(() => problem(404, 'CASE_NOT_FOUND', 'Case not found.'))
+      renderPage()
+
+      const { user, dialog } = await openSubmitDialog()
+      await user.click(submitConfirm(dialog))
+
+      expect(
+        await screen.findByText('This case no longer exists or you no longer have access to it.'),
+      ).toBeInTheDocument()
+      expect(await screen.findByText('Case not found')).toBeInTheDocument()
+    })
+
+    it('sends the client to the login page when the session has expired', async () => {
+      function AppRoutes() {
+        return useRoutes(routes)
+      }
+      mockApi()
+      mockSubmit(() => problem(401, 'UNAUTHORIZED', 'Authentication required.'))
+      renderWithProviders(<AppRoutes />, {
+        initialEntries: [caseDetailsPath(CASE_ID)],
+        user: USER,
+      })
+
+      const { user, dialog } = await openSubmitDialog()
+      await user.click(submitConfirm(dialog))
 
       expect(await screen.findByRole('heading', { name: 'Log in' })).toBeInTheDocument()
     })

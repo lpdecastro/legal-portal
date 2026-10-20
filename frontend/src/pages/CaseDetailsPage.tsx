@@ -1,12 +1,14 @@
 import { Alert, Button, Card, Descriptions, Flex, Spin, Typography } from 'antd'
 import type { DescriptionsProps } from 'antd'
-import { ArrowLeftOutlined, CloseCircleOutlined, EditOutlined, SendOutlined } from '@ant-design/icons'
+import { ArrowLeftOutlined, CloseCircleOutlined, EditOutlined } from '@ant-design/icons'
 import { Link, useNavigate, useParams } from 'react-router'
 import { isCaseNotFound } from '../api/cases'
 import type { LegalCase } from '../api/cases'
+import type { LegalCategory } from '../api/legalCategories'
 import CaseNotFound from '../components/CaseNotFound'
 import CaseStatusTag from '../components/CaseStatusTag'
 import DeleteCaseButton from '../components/DeleteCaseButton'
+import SubmitCaseButton from '../components/SubmitCaseButton'
 import { useCase } from '../hooks/useCase'
 import { useLegalCategories } from '../hooks/useLegalCategories'
 import { editCasePath, paths } from '../routes/paths'
@@ -15,17 +17,23 @@ import { formatDate } from '../utils/formatDate'
 const NOT_PROVIDED = <Typography.Text type="secondary">Not provided</Typography.Text>
 
 // The case only carries a category ID; the name comes from the active categories.
-function CategoryName({ categoryId }: { categoryId: string }) {
-  const { categories, loading } = useLegalCategories()
-
+function CategoryName({ category, loading }: { category?: LegalCategory; loading: boolean }) {
   if (loading) return <Spin size="small" />
-  const category = categories.find(({ id }) => id === categoryId)
   return category ? category.name : <Typography.Text type="secondary">Unavailable</Typography.Text>
 }
 
+interface CaseActionsProps {
+  legalCase: LegalCase
+  // See SubmitCaseButton; undefined while the categories are loading.
+  categoryActive?: boolean
+  categoriesLoading: boolean
+  onChanged: (legalCase: LegalCase) => void
+  onStale: () => void
+}
+
 // Edit, Delete and Submit for drafts; Close for submitted cases; nothing once closed.
-// Submit and Close stay disabled until their flows land (CASE-07-02, CASE-08-02).
-function CaseActions({ legalCase }: { legalCase: LegalCase }) {
+// Close stays disabled until its flow lands (CASE-08-02).
+function CaseActions({ legalCase, categoryActive, categoriesLoading, onChanged, onStale }: CaseActionsProps) {
   const navigate = useNavigate()
 
   if (legalCase.status === 'DRAFT') {
@@ -34,9 +42,17 @@ function CaseActions({ legalCase }: { legalCase: LegalCase }) {
         <Button type="primary" icon={<EditOutlined />} onClick={() => navigate(editCasePath(legalCase.id))}>
           Edit
         </Button>
-        <Button icon={<SendOutlined />} disabled>
-          Submit
-        </Button>
+        {/* Waits for the categories so the active-category check can run first. */}
+        {categoriesLoading ? (
+          <Button disabled>Submit</Button>
+        ) : (
+          <SubmitCaseButton
+            legalCase={legalCase}
+            categoryActive={categoryActive}
+            onSubmitted={onChanged}
+            onStale={onStale}
+          />
+        )}
         <DeleteCaseButton caseId={legalCase.id} />
       </Flex>
     )
@@ -53,9 +69,24 @@ function CaseActions({ legalCase }: { legalCase: LegalCase }) {
   return null
 }
 
-function CaseDetails({ legalCase }: { legalCase: LegalCase }) {
+interface CaseDetailsProps {
+  legalCase: LegalCase
+  onChanged: (legalCase: LegalCase) => void
+  onStale: () => void
+}
+
+function CaseDetails({ legalCase, onChanged, onStale }: CaseDetailsProps) {
+  const { categories, loading: categoriesLoading, error: categoriesError } = useLegalCategories()
+  const category = categories.find(({ id }) => id === legalCase.categoryId)
+  // Unknown when the categories couldn't be loaded; the submit API checks it anyway.
+  const categoryActive = categoriesLoading || categoriesError ? undefined : category !== undefined
+
   const items: DescriptionsProps['items'] = [
-    { key: 'category', label: 'Category', children: <CategoryName categoryId={legalCase.categoryId} /> },
+    {
+      key: 'category',
+      label: 'Category',
+      children: <CategoryName category={category} loading={categoriesLoading} />,
+    },
     { key: 'location', label: 'Location', children: legalCase.location ?? NOT_PROVIDED },
     { key: 'createdAt', label: 'Created', children: formatDate(legalCase.createdAt) },
     { key: 'updatedAt', label: 'Last updated', children: formatDate(legalCase.updatedAt) },
@@ -84,7 +115,13 @@ function CaseDetails({ legalCase }: { legalCase: LegalCase }) {
             <CaseStatusTag status={legalCase.status} />
           </div>
         </Flex>
-        <CaseActions legalCase={legalCase} />
+        <CaseActions
+          legalCase={legalCase}
+          categoryActive={categoryActive}
+          categoriesLoading={categoriesLoading}
+          onChanged={onChanged}
+          onStale={onStale}
+        />
       </Flex>
       <Card>
         <Descriptions column={{ xs: 1, sm: 1, md: 2 }} items={items} />
@@ -94,7 +131,7 @@ function CaseDetails({ legalCase }: { legalCase: LegalCase }) {
 }
 
 function CaseDetailsContent({ id }: { id: string }) {
-  const { legalCase, loading, error, retry } = useCase(id)
+  const { legalCase, loading, error, retry, replace } = useCase(id)
 
   if (loading) {
     return (
@@ -125,7 +162,7 @@ function CaseDetailsContent({ id }: { id: string }) {
     )
   }
 
-  return <CaseDetails legalCase={legalCase} />
+  return <CaseDetails legalCase={legalCase} onChanged={replace} onStale={retry} />
 }
 
 function CaseDetailsPage() {

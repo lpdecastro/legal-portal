@@ -1,18 +1,34 @@
-# Current Feature
+# Current Feature: CASE-07-02 Submit Case UI
 
-<!-- Feature name and short description -->
+Submit action on the Case Details page that validates a draft, confirms, and submits it.
 
 ## Status
 
-<!-- Not Started / In Progress / Completed -->
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- Submit on Case Details is available (enabled) only for `DRAFT` cases
+- Clicking Submit validates client-side first: title required ≤200, category required and active, description required non-blank, location required non-blank ≤255
+- Missing/invalid info shows a validation message with an option to go to Edit Draft (no API call)
+- Valid drafts open a confirmation dialog with Cancel and Submit; Cancel closes without calling the API
+- Confirming calls `POST /api/v1/cases/{id}/submit` (CSRF token in `X-XSRF-TOKEN`)
+- Submit shows a loading indicator and ignores duplicate requests while in flight
+- 200 shows a success message and updates the page in place to `SUBMITTED` (Edit/Submit/Delete gone, Close shown)
+- 400 `VALIDATION_ERROR` shows the API's field errors with an option to edit the draft
+- 409 `INVALID_CASE_STATE` (already submitted/closed) shows a message and refreshes the case; 404 `CASE_NOT_FOUND` shows a message and refreshes (→ Case not found)
+- Other failures show an error message and stay on the page
+- Unauthenticated clients are redirected to login (401 → `onUnauthorized` → `RequireAuth`)
+- RTL + MSW tests cover every item in the spec's Testing section
 
 ## Notes
 
-<!-- Any extra notes -->
+- Spec: `context/epics/03-case-management/stories/CASE-07-submit-case/tasks/CASE-07-02-submit-case-ui.md`
+- Dependencies done: Submit Case API (History CASE-07-01), Get Case Details API, Edit Draft Form, Case Details Page (CASE-04-02), auth + protected routes.
+- `CaseDetailsPage` already renders a disabled Submit button for drafts — wire it up, likely as a `SubmitCaseButton` in `components/` mirroring `DeleteCaseButton`/`useDeleteCase`.
+- `CaseResponse` now includes `submittedAt`; add it to the `LegalCase` type in `api/cases.ts`.
+- "Category active" check can reuse `useLegalCategories` (already loaded on the page to resolve the name).
+- Updating in place needs the submitted case pushed into `useCase` state (e.g. a setter) or a `retry()` refetch.
 
 ## History
 

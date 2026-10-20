@@ -1,4 +1,4 @@
-import { ApiError, deleteNoContent, getJson, patchJson, postJson } from './client'
+import { ApiError, deleteNoContent, getJson, patchJson, postForJson, postJson } from './client'
 
 export type CaseStatus = 'DRAFT' | 'SUBMITTED' | 'CLOSED'
 
@@ -27,6 +27,8 @@ export interface LegalCase {
   status: CaseStatus
   createdAt: string
   updatedAt: string
+  // Null until the case is submitted.
+  submittedAt: string | null
 }
 
 // One row of the client's case list; `category` is the category name.
@@ -69,6 +71,12 @@ export function updateCase(id: string, request: UpdateCaseRequest): Promise<Lega
 // deleted and missing cases 404 CASE_NOT_FOUND.
 export function deleteCase(id: string): Promise<void> {
   return deleteNoContent(casePath(id))
+}
+
+// Submits one of the signed-in client's drafts and returns it as SUBMITTED; non-drafts answer 409 INVALID_CASE_STATE,
+// incomplete drafts 400 VALIDATION_ERROR with every failing field.
+export function submitCase(id: string): Promise<LegalCase> {
+  return postForJson<LegalCase>(`${casePath(id)}/submit`)
 }
 
 // True when a case load failed because the case is missing or inaccessible: 404 covers other clients', deleted and

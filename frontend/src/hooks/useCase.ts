@@ -8,9 +8,11 @@ interface UseCaseResult {
   // The failure from the last load, typically an `ApiError`.
   error?: unknown
   retry: () => void
+  // Shows a newer copy of the case, e.g. one returned by a state change, without reloading.
+  replace: (legalCase: LegalCase) => void
 }
 
-// Loads one of the signed-in client's cases by ID. `retry` refetches after a failure.
+// Loads one of the signed-in client's cases by ID. `retry` refetches, e.g. after a failure.
 export function useCase(id: string): UseCaseResult {
   const [legalCase, setLegalCase] = useState<LegalCase>()
   const [loading, setLoading] = useState(true)
@@ -44,5 +46,10 @@ export function useCase(id: string): UseCaseResult {
     setAttempt((current) => current + 1)
   }, [])
 
-  return { legalCase, loading, error, retry }
+  const replace = useCallback((updated: LegalCase) => {
+    setLegalCase(updated)
+    setError(undefined)
+  }, [])
+
+  return { legalCase, loading, error, retry, replace }
 }

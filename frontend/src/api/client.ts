@@ -109,6 +109,12 @@ export async function patchJson<TResponse>(path: string, body: unknown): Promise
   return (await response.json()) as TResponse
 }
 
+// Sends a CSRF-protected POST with no body and returns the JSON response.
+export async function postForJson<TResponse>(path: string): Promise<TResponse> {
+  const response = await sendWithCsrf(path, {})
+  return (await response.json()) as TResponse
+}
+
 // Sends a CSRF-protected POST with no body to an endpoint that answers 204 No Content.
 export async function postNoContent(path: string): Promise<void> {
   await sendWithCsrf(path, {})

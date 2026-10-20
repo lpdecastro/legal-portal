@@ -1,27 +1,18 @@
-# Current Feature: PROF-01-02: Update Client Profile API
+# Current Feature
 
-Allow authenticated clients to update their personal information.
+<!-- Feature name and short description -->
 
 ## Status
 
-In Progress
+<!-- Not Started / In Progress / Completed -->
 
 ## Goals
 
-- `PATCH /api/v1/clients/me` updates the session's client's first name, last name and phone number.
-- Email cannot be modified.
-- First name and last name are required; phone number is optional.
-- Invalid inputs return 400 `VALIDATION_ERROR` with `fieldErrors`.
-- Only the authenticated client's profile can be updated.
-- 200 returns `{ firstName, lastName, email, phone }`.
-- Errors: 400 validation, 401 unauthorized, 404 `PROFILE_NOT_FOUND`, 500 internal (RFC 9457 Problem Details).
-- Automated tests cover successful updates, validation errors, and unauthorized requests.
+<!-- Goals and requirements -->
 
 ## Notes
 
-- Spec: `context/epics/05-profile-settings/stories/PROF-01-view-edit-profile/tasks/PROF-01-02-update-client-profile-api.md`.
-- Builds on PROF-01-01 (`GET /api/v1/clients/me`, `ClientProfileController`/`ClientProfileService`, `ClientProfileResponse`, `ProfileNotFoundException`).
-- State-changing request: CSRF-protected (`X-XSRF-TOKEN`).
+<!-- Any extra notes -->
 
 ## History
 
@@ -70,3 +61,4 @@ In Progress
 - **DASH-01-02: Case Statistics UI** (2026-10-20) — `DashboardPage` shows Total Cases, Draft, Submitted and Closed counts as antd `Statistic` cards (`CaseStatistics` in `components/`, two per row on mobile, four across from `lg`); `@tanstack/react-query` added: `useDashboardSummary` (query key `['dashboard', 'summary']`) loads `GET /api/v1/dashboard/summary` via `fetchDashboardSummary()` (`api/dashboard.ts`, `DashboardSummary`/`CaseStatistics`/`RecentCase` types), shared with the Recent Cases UI (DASH-02-01) so the dashboard makes one request; loading `Spin` "Loading statistics…", error `Alert` with Retry (a failed refresh keeps the last counts); `createQueryClient()` (`query/queryClient.ts`) disables automatic retries in favour of the Retry button; `QueryClientProvider` in `App` and `renderWithProviders` (fresh client per test); `AuthProvider` clears the query cache on sign-out so the next client never sees cached data; `DashboardPage` tests (counts, zeros, loading, error/Retry, single request for two readers); `RequireAuth` tests mock the summary.
 - **DASH-02-01: Recent Cases UI** (2026-10-20) — `DashboardPage` shows a Recent Cases card (`RecentCases` in `components/`, title "Recent Cases" with a View all link to My Cases) below the statistics with the 5 newest cases, newest first as returned by `GET /api/v1/dashboard/summary`; desktop (`md`+) shows an antd `Table` (title link, `CaseStatusTag`, created date via `formatDate`) whose rows open `caseDetailsPath(id)` (title link stops propagation), mobile a stack of linked `Card`s; reads the shared `useDashboardSummary` query, so the dashboard still makes one request; loading `Spin` "Loading recent cases…", error `Alert` "We couldn't load your recent cases." with Retry (a failed refresh keeps the last cases), `Empty` "You don't have any cases yet." with Create Case; `DashboardPage` recent cases tests (order, fields, desktop/mobile navigation, empty, loading, error/Retry, one request shared with the statistics).
 - **PROF-01-01: Get Client Profile API** (2026-10-20) — Authenticated `GET /api/v1/clients/me` (`ClientProfileController` → `ClientProfileService`, read-only transaction, `client` package, new `Profile` OpenAPI tag) returns the session's client's `{ firstName, lastName, email, phone }` (`ClientProfileResponse`; `phone` `null` until set) with no IDs, password hash, status or role; unauthenticated requests and suspended/disabled/deleted accounts get 401 `UNAUTHORIZED`; an active account without a profile gets 404 `PROFILE_NOT_FOUND` "Profile not found." (`ProfileNotFoundException`, added to the error codes in `project-overview.md`); `ClientProfileIntegrationTest`; `LoginIntegrationTest` now expects 200 from `/clients/me`, which it had used as an unmapped protected path.
+- **PROF-01-02: Update Client Profile API** (2026-10-20) — Authenticated, CSRF-protected `PATCH /api/v1/clients/me` (`ClientProfileController.update` → `ClientProfileService.updateProfile`) updates the session's client's first name, last name and phone and returns 200 `ClientProfileResponse` `{ firstName, lastName, email, phone }`; `UpdateProfileRequest` follows `UpdateCaseRequest`'s partial-update semantics (omitted fields unchanged, explicit `null` or blank clears `phone`, names can't be cleared — 400 "… is required"), values trimmed; email isn't a request field, so it can't change (ignored if sent); names ≤100, phone ≤30 with digits, spaces, parentheses, hyphens and a leading `+` (400 `VALIDATION_ERROR` with `fieldErrors`); unauthenticated/suspended/disabled/deleted 401, missing profile 404 `PROFILE_NOT_FOUND`, missing/invalid CSRF 403; `ClientProfile.updateDetails`; `UpdateClientProfileIntegrationTest` (rows unchanged on every rejection).

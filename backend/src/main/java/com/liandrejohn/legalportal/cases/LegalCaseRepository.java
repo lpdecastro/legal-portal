@@ -1,5 +1,6 @@
 package com.liandrejohn.legalportal.cases;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -11,6 +12,7 @@ import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Query;
 
 public interface LegalCaseRepository extends JpaRepository<LegalCase, UUID>, JpaSpecificationExecutor<LegalCase> {
 
@@ -31,5 +33,25 @@ public interface LegalCaseRepository extends JpaRepository<LegalCase, UUID>, Jpa
     @Override
     @EntityGraph(attributePaths = "category")
     Page<LegalCase> findAll(Specification<LegalCase> spec, Pageable pageable);
+
+    /** The number of {@code clientId}'s non-deleted cases in each status; statuses without cases are left out. */
+    @Query("""
+            SELECT c.status AS status, COUNT(c) AS count FROM LegalCase c
+            WHERE c.client.id = :clientId AND c.deletedAt IS NULL
+            GROUP BY c.status
+            """)
+    List<StatusCount> countByStatus(UUID clientId);
+
+    /** {@code clientId}'s five newest non-deleted cases; cases created at the same instant are ordered by ID. */
+    List<LegalCase> findTop5ByClientIdAndDeletedAtIsNullOrderByCreatedAtDescIdDesc(UUID clientId);
+
+    /** One row of {@link #countByStatus}. */
+    interface StatusCount {
+
+        CaseStatus getStatus();
+
+        long getCount();
+
+    }
 
 }

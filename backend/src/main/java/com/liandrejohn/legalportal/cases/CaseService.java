@@ -20,8 +20,6 @@ import com.liandrejohn.legalportal.client.ClientProfileRepository;
 import com.liandrejohn.legalportal.error.FieldErrorDetail;
 import com.liandrejohn.legalportal.error.FieldValidationException;
 import com.liandrejohn.legalportal.security.AuthenticationRequiredException;
-import com.liandrejohn.legalportal.user.User;
-import com.liandrejohn.legalportal.user.UserStatus;
 
 @Service
 @RequiredArgsConstructor
@@ -190,10 +188,7 @@ class CaseService {
 
     /** Accounts deleted, suspended or disabled after login can't act on cases. */
     private ClientProfile findActiveClient(UUID userId) {
-        return clientProfileRepository.findByUserId(userId).filter((profile) -> {
-            User user = profile.getUser();
-            return user.getDeletedAt() == null && user.getStatus() == UserStatus.ACTIVE;
-        }).orElseThrow(AuthenticationRequiredException::new);
+        return clientProfileRepository.findActiveByUserId(userId).orElseThrow(AuthenticationRequiredException::new);
     }
 
 }

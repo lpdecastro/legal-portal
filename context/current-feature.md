@@ -1,18 +1,33 @@
-# Current Feature
+# Current Feature: DASH-01-01: Dashboard Summary API
 
-<!-- Feature name and short description -->
+Create an API to retrieve case statistics and recent cases for the logged-in client.
 
 ## Status
 
-<!-- Not Started / In Progress / Completed -->
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- `GET /api/v1/dashboard/summary` returns `total`, `draft`, `submitted`, and `closed` case counts under `statistics`.
+- Returns the 5 most recent cases under `recentCases` (`id`, `title`, `status`, `createdAt`), newest first.
+- Includes only the authenticated client's non-deleted cases.
+- Returns zero counts and an empty `recentCases` list when no cases exist.
+- Rejects unauthenticated requests with 401 `UNAUTHORIZED`.
 
 ## Notes
 
-<!-- Any extra notes -->
+- Spec: `context/epics/04-client-dashboard/stories/DASH-01-case-statistics/tasks/DASH-01-01-dashboard-summary-api.md`.
+- Response shape:
+  ```json
+  {
+    "statistics": { "total": 12, "draft": 3, "submitted": 7, "closed": 2 },
+    "recentCases": [
+      { "id": "550e8400-…", "title": "Property Dispute", "status": "SUBMITTED", "createdAt": "2026-10-15T08:00:00Z" }
+    ]
+  }
+  ```
+- Errors: `401 UNAUTHORIZED` — missing or expired session.
+- Reuse existing patterns: ownership + soft deletion like `LegalCaseSpecifications.visibleTo`, `createdAt` desc then `id` desc ordering like the cases list, suspended/disabled/deleted accounts get 401, new `ApiTags` tag for OpenAPI grouping.
 
 ## History
 

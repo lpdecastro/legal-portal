@@ -7,6 +7,8 @@ public final class ApiTags {
 
     public static final String CASES = "Cases";
 
+    public static final String DASHBOARD = "Dashboard";
+
     public static final String LEGAL_CATEGORIES = "Legal Categories";
 
     private ApiTags() {

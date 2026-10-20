@@ -1,27 +1,18 @@
-# Current Feature: CASE-04-02: Case Details Page
+# Current Feature
+
+<!-- Feature name and short description -->
 
 ## Status
 
-In Progress
+<!-- Not Started / In Progress / Completed -->
 
 ## Goals
 
-- `/cases/:id` fetches the case via `GET /api/v1/cases/:id` (reuse `fetchCase()`/`useCase`).
-- Display title, category, description, location, status, and relevant dates.
-- Actions by status: `DRAFT` — Edit, Delete, Submit; `SUBMITTED` — Close; `CLOSED` — none.
-- Edit navigates to `/cases/:id/edit`.
-- Loading and error states (error with Retry).
-- Not-found message for missing or inaccessible cases (404 `CASE_NOT_FOUND`, malformed-ID 400).
-- Desktop and mobile layouts.
-- Automated FE tests: details shown, actions match status, Edit navigation, not-found, loading and error states.
+<!-- Goals and requirements -->
 
 ## Notes
 
-- Spec: `context/epics/03-case-management/stories/CASE-04-view-case-details/tasks/CASE-04-02-case-details-page.md`.
-- Spec's dependency "CASE-04-01 – Get Case Details API" is the endpoint shipped as CASE-03-01 (History).
-- `GET /cases/{id}` returns `categoryId`, not the name — resolve the name via `useLegalCategories` (inactive categories won't be listed; see BKL-01).
-- Backend has `DELETE /cases/{id}` (CASE-04-01) but no Submit/Close endpoints yet; this task only shows the action buttons (disabled); wiring them is CASE-06-02 (Delete), CASE-07-02 (Submit), CASE-08-02 (Close).
-- `CaseDetailsPage.tsx` exists as a placeholder; reuse `CaseStatusTag`, date formatting from `MyCasesPage`, and the not-found `Result` pattern from `EditCasePage`.
+<!-- Any extra notes -->
 
 ## History
 
@@ -54,3 +45,4 @@ In Progress
 - **CASE-03-01: List My Cases API** (2026-10-18) — Authenticated `GET /api/v1/cases` (`CaseController.list` → `CaseService.listCases`, read-only transaction) returns the session's client's cases as `{ content: [{ id, title, category, status, createdAt }] }` (`CaseListResponse` of `CaseSummaryResponse`, `category` = category name) in every status, newest first (`createdAt` desc, then `id` desc); ownership and soft deletion enforced in the query (`LegalCaseRepository.findByClientIdAndDeletedAtIsNullOrderByCreatedAtDescIdDesc`, `@EntityGraph` fetches categories in the same query); `content: []` when there are none; unauthenticated and suspended/disabled/deleted accounts get 401; no pagination yet (`content` wrapper leaves room for page metadata); `ListCasesIntegrationTest`; task spec gained ACs 6–9.
 - **BKL-03: SQL Debug Logging** (2026-10-18) — `SQL_LOG_LEVEL` sets the `org.hibernate.SQL` log level via `logging.level.org.hibernate.SQL: ${SQL_LOG_LEVEL:INFO}` in `application.yaml` (explicit placeholder, since `.env` is imported as a properties file and Boot's relaxed `LOGGING_LEVEL_*` binding only applies to real env vars); default `INFO` logs no SQL, `DEBUG` in `.env` logs each executed statement after a restart; bind parameters stay unlogged (user data); documented in `.env.example`; `SqlLogLevelTest` (bare context, no DB; default check skipped when the local `.env` sets the variable, level reset after each test).
 - **CASE-03-02: My Cases Page** (2026-10-20) — `MyCasesPage` on `/cases` loads the client's cases via `fetchCases()` (`api/cases.ts`, `CaseSummary`/`CaseListResponse` types, unwraps `content`) and `useCases` (same loading/error/`retry` shape as `useLegalCategories`); desktop (`md`+) shows an antd `Table` (title link, category, status, created date as "Oct 18, 2026" via `Intl.DateTimeFormat('en-US')`, newest first as returned) whose rows navigate to `caseDetailsPath(id)` (title link stops propagation to avoid a double navigation); mobile shows a vertical stack of linked `Card`s (antd `List` is deprecated in antd 6); loading `Spin` "Loading cases…", error `Alert` with Retry, `Empty` "You don't have any cases yet." with Create Case; reusable `CaseStatusTag` (Draft/Submitted/Closed); `MyCasesPage` RTL + MSW tests (desktop via a `matchMedia` override); `RequireAuth` tests mock `GET /cases`.
+- **CASE-04-02: Case Details Page** (2026-10-20) — `CaseDetailsPage` on `/cases/:id` loads the case via `fetchCase()`/`useCase` and shows title, `CaseStatusTag`, category name (resolved from `useLegalCategories`; "Unavailable" when not active), location, created/last-updated dates and description (missing optional fields "Not provided") in an antd `Descriptions` card (2 columns on `md`+, 1 on mobile); status actions: Draft Edit/Submit/Delete, Submitted Close, Closed none — Edit navigates to `editCasePath(id)`, Submit/Delete/Close render disabled until CASE-07-02/CASE-06-02/CASE-08-02; loading `Spin`, error `Alert` with Retry, shared `CaseNotFound` `Result` for 404/400 (also used by `EditCasePage`); `formatDate` moved to `utils/formatDate.ts` and `isCaseNotFound` to `api/cases.ts`; page keyed by ID; `CaseDetailsPage` RTL + MSW tests; backlog BKL-04 (Cancel on Edit Draft).

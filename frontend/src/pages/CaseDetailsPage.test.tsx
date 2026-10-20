@@ -1,11 +1,12 @@
-import { screen } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse, delay } from 'msw'
-import { Route, Routes, useParams } from 'react-router'
+import { Route, Routes, useParams, useRoutes } from 'react-router'
 import { describe, expect, it } from 'vitest'
 import { server } from '../test/mocks/server'
 import { renderWithProviders } from '../test/render'
 import { caseDetailsPath, paths } from '../routes/paths'
+import { routes } from '../routes/router'
 import CaseDetailsPage from './CaseDetailsPage'
 
 const USER = { id: 'u1', email: 'john@example.com', firstName: 'John', lastName: 'Doe' }
@@ -26,6 +27,8 @@ const DRAFT = {
   createdAt: '2026-10-17T10:00:00Z',
   updatedAt: '2026-10-18T10:00:00Z',
 }
+
+const CSRF = { token: 'csrf-token', headerName: 'X-XSRF-TOKEN' }
 
 const problemHeaders = { 'Content-Type': 'application/problem+json' }
 
@@ -56,6 +59,22 @@ function renderPage(id = CASE_ID) {
     { initialEntries: [caseDetailsPath(id)], user: USER },
   )
 }
+
+function mockDelete(resolver: Parameters<typeof http.delete>[1]) {
+  server.use(
+    http.get('*/api/v1/auth/csrf', () => HttpResponse.json(CSRF)),
+    http.delete(`*/api/v1/cases/${CASE_ID}`, resolver),
+  )
+}
+
+async function openDeleteDialog() {
+  const user = userEvent.setup()
+  await user.click(await screen.findByRole('button', { name: /delete/i }))
+  const dialog = await screen.findByRole('dialog', { name: 'Delete this draft?' })
+  return { user, dialog }
+}
+
+const confirmButton = (dialog: HTMLElement) => within(dialog).getByRole('button', { name: /delete/i })
 
 const button = (name: string) => screen.queryByRole('button', { name: new RegExp(name, 'i') })
 
@@ -169,5 +188,102 @@ describe('CaseDetailsPage', () => {
     await user.click(screen.getByRole('button', { name: /retry/i }))
 
     expect(await screen.findByRole('heading', { name: 'Custody dispute' })).toBeInTheDocument()
+  })
+
+  describe('delete', () => {
+    it('asks for confirmation before deleting', async () => {
+      mockApi()
+      renderPage()
+
+      const { dialog } = await openDeleteDialog()
+
+      expect(within(dialog).getByRole('button', { name: /cancel/i })).toBeInTheDocument()
+      expect(confirmButton(dialog)).toBeInTheDocument()
+    })
+
+    it('does not delete when the client cancels', async () => {
+      let deleted = false
+      mockApi()
+      mockDelete(() => {
+        deleted = true
+        return new HttpResponse(null, { status: 204 })
+      })
+      renderPage()
+
+      const { user, dialog } = await openDeleteDialog()
+      await user.click(within(dialog).getByRole('button', { name: /cancel/i }))
+
+      await waitFor(() => expect(dialog).not.toBeVisible())
+      expect(deleted).toBe(false)
+      expect(screen.getByRole('heading', { name: 'Custody dispute' })).toBeInTheDocument()
+    })
+
+    it('deletes the draft with the CSRF token, confirms and goes to My Cases', async () => {
+      let csrfHeader: string | null = null
+      mockApi()
+      mockDelete(({ request }) => {
+        csrfHeader = request.headers.get(CSRF.headerName)
+        return new HttpResponse(null, { status: 204 })
+      })
+      renderPage()
+
+      const { user, dialog } = await openDeleteDialog()
+      await user.click(confirmButton(dialog))
+
+      expect(await screen.findByRole('heading', { name: 'My Cases' })).toBeInTheDocument()
+      expect(await screen.findByText('Draft deleted.')).toBeInTheDocument()
+      expect(csrfHeader).toBe(CSRF.token)
+    })
+
+    it('shows a loading indicator and sends only one request while deleting', async () => {
+      let calls = 0
+      mockApi()
+      mockDelete(async () => {
+        calls += 1
+        await delay('infinite')
+        return new HttpResponse(null, { status: 204 })
+      })
+      renderPage()
+
+      const { user, dialog } = await openDeleteDialog()
+      const confirm = confirmButton(dialog)
+      await user.click(confirm)
+
+      await waitFor(() => expect(confirm).toHaveClass('ant-btn-loading'))
+      await user.click(confirm)
+      expect(within(dialog).getByRole('button', { name: /cancel/i })).toBeDisabled()
+      expect(calls).toBe(1)
+    })
+
+    it.each([
+      [500, 'INTERNAL_ERROR', "We couldn't delete this case. Please try again."],
+      [404, 'CASE_NOT_FOUND', 'This case no longer exists or you no longer have access to it.'],
+      [409, 'INVALID_CASE_STATE', 'Only draft cases can be deleted.'],
+    ])('shows an error and stays on the page when the API answers %i', async (status, errorCode, text) => {
+      mockApi()
+      mockDelete(() => problem(status, errorCode, 'Rejected.'))
+      renderPage()
+
+      const { user, dialog } = await openDeleteDialog()
+      await user.click(confirmButton(dialog))
+
+      expect(await screen.findByText(text)).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Custody dispute' })).toBeInTheDocument()
+      expect(screen.queryByRole('heading', { name: 'My Cases' })).not.toBeInTheDocument()
+    })
+
+    it('sends the client to the login page when the session has expired', async () => {
+      function AppRoutes() {
+        return useRoutes(routes)
+      }
+      mockApi()
+      mockDelete(() => problem(401, 'UNAUTHORIZED', 'Authentication required.'))
+      renderWithProviders(<AppRoutes />, { initialEntries: [caseDetailsPath(CASE_ID)], user: USER })
+
+      const { user, dialog } = await openDeleteDialog()
+      await user.click(confirmButton(dialog))
+
+      expect(await screen.findByRole('heading', { name: 'Log in' })).toBeInTheDocument()
+    })
   })
 })

@@ -12,6 +12,7 @@
 - Functional components only (no class components)
 - Use hooks for state and side effects
 - Keep components focused - one job per component
+- Put stateful components in their own file
 - Use dedicated page components for each route, with reusable shared components
 - Extract reusable logic into custom hooks
 

@@ -7,6 +7,9 @@ import type { AuthenticatedUser } from '../api/auth'
 import AuthProvider from '../auth/AuthProvider'
 import { theme } from '../theme/theme'
 
+// jsdom never fires the transition events antd's animations wait for, so closed dialogs would never hide.
+const testTheme = { ...theme, token: { ...theme.token, motion: false } }
+
 interface RenderWithProvidersOptions extends Omit<RenderOptions, 'wrapper'> {
   initialEntries?: string[]
   // The signed-in client; session restoration (GET /auth/me) is skipped. Defaults to signed out.
@@ -20,7 +23,7 @@ export function renderWithProviders(
 ): RenderResult {
   return render(ui, {
     wrapper: ({ children }) => (
-      <ConfigProvider theme={theme}>
+      <ConfigProvider theme={testTheme}>
         <AntApp>
           <AuthProvider initialUser={user}>
             <MemoryRouter initialEntries={initialEntries}>{children}</MemoryRouter>

@@ -1,11 +1,12 @@
 import { Alert, Button, Card, Descriptions, Flex, Spin, Typography } from 'antd'
 import type { DescriptionsProps } from 'antd'
-import { ArrowLeftOutlined, CloseCircleOutlined, DeleteOutlined, EditOutlined, SendOutlined } from '@ant-design/icons'
+import { ArrowLeftOutlined, CloseCircleOutlined, EditOutlined, SendOutlined } from '@ant-design/icons'
 import { Link, useNavigate, useParams } from 'react-router'
 import { isCaseNotFound } from '../api/cases'
 import type { LegalCase } from '../api/cases'
 import CaseNotFound from '../components/CaseNotFound'
 import CaseStatusTag from '../components/CaseStatusTag'
+import DeleteCaseButton from '../components/DeleteCaseButton'
 import { useCase } from '../hooks/useCase'
 import { useLegalCategories } from '../hooks/useLegalCategories'
 import { editCasePath, paths } from '../routes/paths'
@@ -23,7 +24,7 @@ function CategoryName({ categoryId }: { categoryId: string }) {
 }
 
 // Edit, Delete and Submit for drafts; Close for submitted cases; nothing once closed.
-// Delete, Submit and Close stay disabled until their flows land (CASE-06-02, CASE-07-02, CASE-08-02).
+// Submit and Close stay disabled until their flows land (CASE-07-02, CASE-08-02).
 function CaseActions({ legalCase }: { legalCase: LegalCase }) {
   const navigate = useNavigate()
 
@@ -36,9 +37,7 @@ function CaseActions({ legalCase }: { legalCase: LegalCase }) {
         <Button icon={<SendOutlined />} disabled>
           Submit
         </Button>
-        <Button danger icon={<DeleteOutlined />} disabled>
-          Delete
-        </Button>
+        <DeleteCaseButton caseId={legalCase.id} />
       </Flex>
     )
   }

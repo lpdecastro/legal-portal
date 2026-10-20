@@ -1,18 +1,30 @@
-# Current Feature
+# Current Feature: CASE-06-02 Delete Draft UI
 
-<!-- Feature name and short description -->
+Delete action on the Case Details page that soft-deletes a draft after confirmation.
 
 ## Status
 
-<!-- Not Started / In Progress / Completed -->
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- Delete action on Case Details is available (enabled) only for `DRAFT` cases; submitted/closed cases don't show it
+- Clicking Delete opens a confirmation dialog with Cancel and Delete
+- Cancel closes the dialog without calling the API
+- Confirming calls `DELETE /api/v1/cases/{id}` (CSRF token in `X-XSRF-TOKEN`, 204 no body)
+- Delete shows a loading indicator and ignores duplicate requests while in flight
+- Success shows a success message and navigates to My Cases (`/cases`)
+- API failures show an error message and stay on the page
+- Already-deleted/inaccessible cases (404 `CASE_NOT_FOUND`) and non-draft (409 `INVALID_CASE_STATE`) show an appropriate error message
+- Unauthenticated clients are redirected to login (401 → `onUnauthorized` → `RequireAuth`)
+- RTL + MSW tests cover every item in the spec's Testing section
 
 ## Notes
 
-<!-- Any extra notes -->
+- Spec: `context/epics/03-case-management/stories/CASE-06-delete-draft/tasks/CASE-06-02-delete-draft-ui.md`
+- Dependencies: Delete Draft API (done as History "CASE-04-01: Delete Draft API"), Get Case Details API, Case Details Page (CASE-04-02), auth + protected routes.
+- `CaseDetailsPage` already renders a disabled Delete button for drafts — wire it up.
+- Reuse patterns: `postNoContent`/`sendWithCsrf` in `api/client.ts` (likely add a `deleteNoContent` helper), `useUpdateCase`/`useLogout` hook shape, `isCaseNotFound` in `api/cases.ts`.
 
 ## History
 

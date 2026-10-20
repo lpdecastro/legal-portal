@@ -113,3 +113,8 @@ export async function patchJson<TResponse>(path: string, body: unknown): Promise
 export async function postNoContent(path: string): Promise<void> {
   await sendWithCsrf(path, {})
 }
+
+// Sends a CSRF-protected DELETE to an endpoint that answers 204 No Content.
+export async function deleteNoContent(path: string): Promise<void> {
+  await sendWithCsrf(path, { method: 'DELETE' })
+}

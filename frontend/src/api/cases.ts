@@ -1,4 +1,4 @@
-import { ApiError, getJson, patchJson, postJson } from './client'
+import { ApiError, deleteNoContent, getJson, patchJson, postJson } from './client'
 
 export type CaseStatus = 'DRAFT' | 'SUBMITTED' | 'CLOSED'
 
@@ -63,6 +63,12 @@ export function fetchCase(id: string): Promise<LegalCase> {
 // Partially updates one of the signed-in client's drafts; non-drafts answer 409 INVALID_CASE_STATE.
 export function updateCase(id: string, request: UpdateCaseRequest): Promise<LegalCase> {
   return patchJson<LegalCase>(casePath(id), request)
+}
+
+// Soft-deletes one of the signed-in client's drafts (204); non-drafts answer 409 INVALID_CASE_STATE, other clients',
+// deleted and missing cases 404 CASE_NOT_FOUND.
+export function deleteCase(id: string): Promise<void> {
+  return deleteNoContent(casePath(id))
 }
 
 // True when a case load failed because the case is missing or inaccessible: 404 covers other clients', deleted and

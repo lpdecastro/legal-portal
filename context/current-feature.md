@@ -1,28 +1,18 @@
-# Current Feature: CASE-03-02 My Cases Page
+# Current Feature
 
-Clients view their cases in a table on `/cases`.
+<!-- Feature name and short description -->
 
 ## Status
 
-In Progress
+<!-- Not Started / In Progress / Completed -->
 
 ## Goals
 
-- Fetch cases using `GET /api/v1/cases`.
-- Display case title, category, status, and creation date.
-- Clicking a case navigates to `/cases/:id`.
-- Show an empty state when no cases exist.
-- Show a loading indicator while fetching cases.
-- Show an error message with a retry option when fetching fails.
-- Support desktop and mobile layouts.
-- RTL + MSW tests: cases listed, click opens details, empty/loading/error states, retry reloads after an error.
+<!-- Goals and requirements -->
 
 ## Notes
 
-- Type: FE. Story: CASE-03 – View My Cases. Depends on authentication and protected routes (done).
-- API (CASE-03-01): `GET /api/v1/cases` → `{ content: [{ id, title, category, status, createdAt }] }`, `category` is the category name, newest first, no pagination yet.
-- Reuse `api/client.ts`, `api/cases.ts` (`CaseStatus`), `caseDetailsPath(id)`, and the `useCase` loading/error/Retry patterns from `EditCasePage`.
-- Definition of Done: all ACs met, automated FE tests pass.
+<!-- Any extra notes -->
 
 ## History
 
@@ -54,3 +44,4 @@ In Progress
 - **BKL-02: Group API Docs by Area** (2026-10-18) — Every controller carries an OpenAPI `@Tag` from `ApiTags` (`Auth`: registration, login, logout, current client, CSRF; `Cases`; `Legal Categories`), so `/scalar` groups endpoints by area instead of `*-controller`; `ApiDocsTest` checks every operation in `/v3/api-docs` has exactly one of these tags; coding standard "Tag every controller with its API area".
 - **CASE-03-01: List My Cases API** (2026-10-18) — Authenticated `GET /api/v1/cases` (`CaseController.list` → `CaseService.listCases`, read-only transaction) returns the session's client's cases as `{ content: [{ id, title, category, status, createdAt }] }` (`CaseListResponse` of `CaseSummaryResponse`, `category` = category name) in every status, newest first (`createdAt` desc, then `id` desc); ownership and soft deletion enforced in the query (`LegalCaseRepository.findByClientIdAndDeletedAtIsNullOrderByCreatedAtDescIdDesc`, `@EntityGraph` fetches categories in the same query); `content: []` when there are none; unauthenticated and suspended/disabled/deleted accounts get 401; no pagination yet (`content` wrapper leaves room for page metadata); `ListCasesIntegrationTest`; task spec gained ACs 6–9.
 - **BKL-03: SQL Debug Logging** (2026-10-18) — `SQL_LOG_LEVEL` sets the `org.hibernate.SQL` log level via `logging.level.org.hibernate.SQL: ${SQL_LOG_LEVEL:INFO}` in `application.yaml` (explicit placeholder, since `.env` is imported as a properties file and Boot's relaxed `LOGGING_LEVEL_*` binding only applies to real env vars); default `INFO` logs no SQL, `DEBUG` in `.env` logs each executed statement after a restart; bind parameters stay unlogged (user data); documented in `.env.example`; `SqlLogLevelTest` (bare context, no DB; default check skipped when the local `.env` sets the variable, level reset after each test).
+- **CASE-03-02: My Cases Page** (2026-10-20) — `MyCasesPage` on `/cases` loads the client's cases via `fetchCases()` (`api/cases.ts`, `CaseSummary`/`CaseListResponse` types, unwraps `content`) and `useCases` (same loading/error/`retry` shape as `useLegalCategories`); desktop (`md`+) shows an antd `Table` (title link, category, status, created date as "Oct 18, 2026" via `Intl.DateTimeFormat('en-US')`, newest first as returned) whose rows navigate to `caseDetailsPath(id)` (title link stops propagation to avoid a double navigation); mobile shows a vertical stack of linked `Card`s (antd `List` is deprecated in antd 6); loading `Spin` "Loading cases…", error `Alert` with Retry, `Empty` "You don't have any cases yet." with Create Case; reusable `CaseStatusTag` (Draft/Submitted/Closed); `MyCasesPage` RTL + MSW tests (desktop via a `matchMedia` override); `RequireAuth` tests mock `GET /cases`.

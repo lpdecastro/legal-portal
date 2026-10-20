@@ -48,6 +48,11 @@ export interface PageRequest {
   size: number
 }
 
+// A page of cases, optionally limited to one status; no status lists every status.
+export interface CaseListRequest extends PageRequest {
+  status?: CaseStatus
+}
+
 // Where a page sits in the full list; `number` is zero-based.
 export interface PageMetadata {
   size: number
@@ -68,9 +73,10 @@ export function createCase(request: CreateCaseRequest): Promise<LegalCase> {
   return postJson<LegalCase>('/cases', request)
 }
 
-// Lists one page of the signed-in client's cases in every status, newest first.
-export function fetchCases({ page, size }: PageRequest): Promise<CaseListResponse> {
+// Lists one page of the signed-in client's cases, newest first, in every status unless one is given.
+export function fetchCases({ page, size, status }: CaseListRequest): Promise<CaseListResponse> {
   const query = new URLSearchParams({ page: String(page), size: String(size) })
+  if (status) query.set('status', status)
   return getJson<CaseListResponse>(`/cases?${query}`)
 }
 

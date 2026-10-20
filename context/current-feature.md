@@ -1,18 +1,31 @@
-# Current Feature
+# Current Feature: CASE-10-02 Filter Cases UI
 
-<!-- Feature name and short description -->
+Let clients filter their cases by status on the My Cases page (`/cases`).
 
 ## Status
 
-<!-- Not Started / In Progress / Completed -->
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- Status dropdown above the cases table with `All Statuses`, `DRAFT`, `SUBMITTED`, `CLOSED` options.
+- Cases fetched via `GET /api/v1/cases?status={status}`, combined with `page`/`size`.
+- Status filter preserved when changing pages.
+- Cases table updates when the filter changes.
+- Changing the filter resets pagination to the first page.
+- All Statuses removes the `status` param.
+- Empty state when no cases match.
+- Loading and error states.
+- Works on desktop and mobile layouts.
+- FE tests: filter by each status, filter persists across pages, All Statuses restores unfiltered results, filter change resets to page 1, no matches shows empty state, API errors show an error message.
 
 ## Notes
 
-<!-- Any extra notes -->
+- Type: FE. Story: CASE-10 – Filter Cases.
+- Depends on CASE-03-02 (My Cases Page), CASE-09-02 (Pagination UI), CASE-10-01 (Filter Cases API), auth and protected routes.
+- API (CASE-10-01): optional `status` (`DRAFT`, `SUBMITTED`, `CLOSED`, case-sensitive); filter applies before paging, so page metadata counts matching cases only; no matches return empty `content` with zero totals; unknown values 400 `VALIDATION_ERROR`.
+- Existing: `MyCasesPage`, `fetchCases({ page, size })`, `useCases`, `CasePagination`; empty state currently "You don't have any cases yet." with no pagination controls — a filtered empty result needs its own message and should keep the filter visible.
+- Done when all ACs are met and automated FE tests pass.
 
 ## History
 

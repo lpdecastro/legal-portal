@@ -1,4 +1,4 @@
-import { screen, within } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse, delay } from 'msw'
 import { Route, Routes, useParams } from 'react-router'
@@ -58,6 +58,55 @@ function servePages(all: typeof CASES) {
     return casePage(all.slice(page * size, (page + 1) * size), { size, number: page, totalElements: all.length })
   })
   return requests
+}
+
+// Serves `all` cases filtered by the `status` query parameter and paged, and records each request
+// (`status` is null when the parameter is left out).
+function serveFiltered(all: typeof CASES) {
+  const requests: { page: number; size: number; status: string | null }[] = []
+  listCases(({ request }) => {
+    const params = new URL(request.url).searchParams
+    const page = Number(params.get('page'))
+    const size = Number(params.get('size'))
+    const status = params.get('status')
+    requests.push({ page, size, status })
+    const matching = status ? all.filter((legalCase) => legalCase.status === status) : all
+    return casePage(matching.slice(page * size, (page + 1) * size), {
+      size,
+      number: page,
+      totalElements: matching.length,
+    })
+  })
+  return requests
+}
+
+// `count` cases in one status titled e.g. "Draft 1"…"Draft N".
+const casesInStatus = (status: string, label: string, count: number) =>
+  Array.from({ length: count }, (_, index) => ({
+    id: `${status.toLowerCase()}-${index + 1}`,
+    title: `${label} ${index + 1}`,
+    category: 'Family Law',
+    status,
+    createdAt: '2026-10-17T12:00:00Z',
+  }))
+
+// 25 drafts, 3 submitted and 2 closed cases.
+const MIXED_CASES = [
+  ...casesInStatus('DRAFT', 'Draft', 25),
+  ...casesInStatus('SUBMITTED', 'Submitted', 3),
+  ...casesInStatus('CLOSED', 'Closed', 2),
+]
+
+// Picks an option in the status filter by its label.
+async function selectStatus(label: string) {
+  await userEvent.click(screen.getByRole('combobox', { name: 'Filter by status' }))
+  // antd's hidden accessible listbox only lists raw values, so click the visible dropdown item.
+  const option = await waitFor(() => {
+    const item = document.querySelector(`.ant-select-item-option[title="${label}"]`)
+    if (!item) throw new Error(`No "${label}" option`)
+    return item
+  })
+  await userEvent.click(option)
 }
 
 const listCases = (resolver: Parameters<typeof http.get>[1]) => server.use(http.get('*/api/v1/cases', resolver))
@@ -349,6 +398,154 @@ describe('MyCasesPage', () => {
       await screen.findByText("You don't have any cases yet.")
       expect(screen.queryByRole('list')).not.toBeInTheDocument()
       expect(screen.queryByText(/^Page \d/)).not.toBeInTheDocument()
+    })
+  })
+
+  describe('status filter', () => {
+    it('offers All Statuses, Draft, Submitted and Closed, starting with All Statuses', async () => {
+      const requests = serveFiltered(MIXED_CASES)
+      renderPage()
+
+      await screen.findByText('Page 1 of 3 · 30 cases')
+      const filter = screen.getByRole('combobox', { name: 'Filter by status' })
+      expect(filter.closest('.ant-select')).toHaveTextContent('All Statuses')
+      await userEvent.click(filter)
+
+      await waitFor(() => expect(document.querySelectorAll('.ant-select-item-option')).toHaveLength(4))
+      const options = document.querySelectorAll('.ant-select-item-option')
+      expect([...options].map((option) => option.textContent)).toEqual(['All Statuses', 'Draft', 'Submitted', 'Closed'])
+      expect(requests).toEqual([{ page: 0, size: 10, status: null }])
+    })
+
+    it.each([
+      ['Draft', 'DRAFT', 'Page 1 of 3 · 25 cases', /^draft 1\b/i],
+      ['Submitted', 'SUBMITTED', 'Page 1 of 1 · 3 cases', /^submitted 1\b/i],
+      ['Closed', 'CLOSED', 'Page 1 of 1 · 2 cases', /^closed 1\b/i],
+    ])('shows only %s cases when that status is selected', async (label, status, summary, firstCase) => {
+      const requests = serveFiltered(MIXED_CASES)
+      renderPage()
+
+      await screen.findByText('Page 1 of 3 · 30 cases')
+      await selectStatus(label)
+
+      expect(await screen.findByText(summary)).toBeInTheDocument()
+      expect(screen.getByRole('link', { name: firstCase })).toBeInTheDocument()
+      const shown = screen.getAllByRole('link').map((link) => link.textContent ?? '')
+      expect(shown.every((text) => text.startsWith(label))).toBe(true)
+      expect(requests.at(-1)).toEqual({ page: 0, size: 10, status })
+    })
+
+    it('keeps the status filter when changing pages and page size', async () => {
+      const requests = serveFiltered(MIXED_CASES)
+      renderPage()
+
+      await screen.findByText('Page 1 of 3 · 30 cases')
+      await selectStatus('Draft')
+      await screen.findByText('Page 1 of 3 · 25 cases')
+
+      await userEvent.click(screen.getByTitle('Next Page'))
+      expect(await screen.findByText('Page 2 of 3 · 25 cases')).toBeInTheDocument()
+      expect(screen.getByRole('link', { name: /^draft 11\b/i })).toBeInTheDocument()
+
+      await userEvent.click(screen.getByRole('combobox', { name: 'Cases per page' }))
+      await userEvent.click(await screen.findByText('20 / page'))
+      expect(await screen.findByText('Page 1 of 2 · 25 cases')).toBeInTheDocument()
+
+      expect(requests.slice(1)).toEqual([
+        { page: 0, size: 10, status: 'DRAFT' },
+        { page: 1, size: 10, status: 'DRAFT' },
+        { page: 0, size: 20, status: 'DRAFT' },
+      ])
+    })
+
+    it('goes back to the first page when the filter changes, keeping the page size', async () => {
+      const requests = serveFiltered(MIXED_CASES)
+      renderPage()
+
+      await screen.findByText('Page 1 of 3 · 30 cases')
+      await userEvent.click(screen.getByTitle('3'))
+      await screen.findByText('Page 3 of 3 · 30 cases')
+
+      await selectStatus('Draft')
+
+      expect(await screen.findByText('Page 1 of 3 · 25 cases')).toBeInTheDocument()
+      expect(requests.at(-1)).toEqual({ page: 0, size: 10, status: 'DRAFT' })
+    })
+
+    it('removes the status filter when All Statuses is selected', async () => {
+      const requests = serveFiltered(MIXED_CASES)
+      renderPage()
+
+      await screen.findByText('Page 1 of 3 · 30 cases')
+      await selectStatus('Closed')
+      await screen.findByText('Page 1 of 1 · 2 cases')
+
+      await selectStatus('All Statuses')
+
+      expect(await screen.findByText('Page 1 of 3 · 30 cases')).toBeInTheDocument()
+      expect(screen.getByRole('link', { name: /^draft 1\b/i })).toBeInTheDocument()
+      expect(requests.at(-1)).toEqual({ page: 0, size: 10, status: null })
+    })
+
+    it('shows an empty state when no cases match, keeping the filter and offering all statuses', async () => {
+      const requests = serveFiltered(MIXED_CASES.filter(({ status }) => status !== 'CLOSED'))
+      renderPage()
+
+      await screen.findByText('Page 1 of 3 · 28 cases')
+      await selectStatus('Closed')
+
+      expect(await screen.findByText('No closed cases found.')).toBeInTheDocument()
+      expect(screen.getByRole('combobox', { name: 'Filter by status' })).toBeInTheDocument()
+      expect(screen.queryByText(/^Page \d/)).not.toBeInTheDocument()
+      expect(screen.queryByText("You don't have any cases yet.")).not.toBeInTheDocument()
+
+      await userEvent.click(screen.getByRole('button', { name: 'Show All Statuses' }))
+
+      expect(await screen.findByText('Page 1 of 3 · 28 cases')).toBeInTheDocument()
+      expect(requests.at(-1)).toEqual({ page: 0, size: 10, status: null })
+    })
+
+    it('shows an error when the filtered cases fail to load and retries with the same filter', async () => {
+      const statuses: (string | null)[] = []
+      listCases(({ request }) => {
+        const status = new URL(request.url).searchParams.get('status')
+        statuses.push(status)
+        if (status === 'SUBMITTED' && statuses.filter((requested) => requested === status).length === 1) {
+          return serverError()
+        }
+        return casePage(status ? CASES.filter((legalCase) => legalCase.status === status) : CASES)
+      })
+      renderPage()
+
+      await screen.findByText('Page 1 of 1 · 2 cases')
+      await selectStatus('Submitted')
+
+      expect(await screen.findByText("We couldn't load your cases.")).toBeInTheDocument()
+      expect(screen.getByRole('combobox', { name: 'Filter by status' })).toBeInTheDocument()
+
+      await userEvent.click(screen.getByRole('button', { name: 'Retry' }))
+
+      expect(await screen.findByText('Page 1 of 1 · 1 case')).toBeInTheDocument()
+      expect(screen.getByRole('link', { name: /unpaid wages/i })).toBeInTheDocument()
+      expect(statuses).toEqual([null, 'SUBMITTED', 'SUBMITTED'])
+    })
+
+    it('shows the filter above the cases table on desktop', async () => {
+      mockDesktopScreen()
+      serveFiltered(MIXED_CASES)
+      renderPage()
+
+      const table = await screen.findByRole('table')
+      const filter = screen.getByRole('combobox', { name: 'Filter by status' })
+      expect(filter.compareDocumentPosition(table) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    })
+
+    it('shows no filter when the client has no cases at all', async () => {
+      listCases(() => casePage([]))
+      renderPage()
+
+      await screen.findByText("You don't have any cases yet.")
+      expect(screen.queryByRole('combobox', { name: 'Filter by status' })).not.toBeInTheDocument()
     })
   })
 })

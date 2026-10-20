@@ -3,8 +3,9 @@ import type { TableColumnsType } from 'antd'
 import { PlusOutlined } from '@ant-design/icons'
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router'
-import type { CaseSummary } from '../api/cases'
+import type { CaseListRequest, CaseStatus, CaseSummary } from '../api/cases'
 import CasePagination from '../components/CasePagination'
+import CaseStatusFilter from '../components/CaseStatusFilter'
 import CaseStatusTag from '../components/CaseStatusTag'
 import { useCases } from '../hooks/useCases'
 import { caseDetailsPath, paths } from '../routes/paths'
@@ -72,9 +73,11 @@ function CaseCards({ cases, loading }: CaseListProps) {
 
 const DEFAULT_PAGE_SIZE = 10
 
+const STATUS_NAMES: Record<CaseStatus, string> = { DRAFT: 'draft', SUBMITTED: 'submitted', CLOSED: 'closed' }
+
 function MyCasesContent() {
-  const [pageRequest, setPageRequest] = useState({ page: 0, size: DEFAULT_PAGE_SIZE })
-  const { data, loading, error, retry } = useCases(pageRequest)
+  const [request, setRequest] = useState<CaseListRequest>({ page: 0, size: DEFAULT_PAGE_SIZE })
+  const { data, loading, error, retry } = useCases(request)
   const screens = Grid.useBreakpoint()
   const isDesktop = screens.md ?? true
   const navigate = useNavigate()
@@ -82,8 +85,11 @@ function MyCasesContent() {
   // A page past the end (e.g. its last case was deleted elsewhere) moves back to the last page.
   // Adjusted while rendering, as React recommends for state derived from a response.
   if (!loading && data && data.content.length === 0 && data.page.number > 0 && data.page.totalPages > 0) {
-    setPageRequest({ page: data.page.totalPages - 1, size: data.page.size })
+    setRequest({ ...request, page: data.page.totalPages - 1, size: data.page.size })
   }
+
+  // A new filter starts again from the first page.
+  const changeStatus = (status?: CaseStatus) => setRequest({ page: 0, size: request.size, status })
 
   if (!data && loading) {
     return (
@@ -93,26 +99,8 @@ function MyCasesContent() {
     )
   }
 
-  if (error) {
-    return (
-      <Alert
-        type="error"
-        showIcon
-        title="We couldn't load your cases."
-        description="Please check your connection and try again."
-        action={
-          <Button size="small" onClick={retry}>
-            Retry
-          </Button>
-        }
-        style={{ maxWidth: 720 }}
-      />
-    )
-  }
-
-  if (!data) return null
-
-  if (data.page.totalElements === 0) {
+  // With no cases at all there is nothing to filter, so the filter is left out.
+  if (!request.status && !loading && !error && data?.page.totalElements === 0) {
     return (
       <Empty description="You don't have any cases yet." style={{ padding: 48 }}>
         <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate(paths.createCase)}>
@@ -124,19 +112,64 @@ function MyCasesContent() {
 
   return (
     <>
-      {isDesktop ? (
-        <CaseTable cases={data.content} loading={loading} />
-      ) : (
-        <CaseCards cases={data.content} loading={loading} />
-      )}
-      <CasePagination
-        page={data.page}
-        disabled={loading}
-        compact={!isDesktop}
-        onChange={(page, size) => setPageRequest({ page, size })}
-      />
+      <div style={{ marginBottom: 16 }}>
+        <CaseStatusFilter value={request.status} compact={!isDesktop} onChange={changeStatus} />
+      </div>
+      {renderCases()}
     </>
   )
+
+  function renderCases() {
+    if (error) {
+      return (
+        <Alert
+          type="error"
+          showIcon
+          title="We couldn't load your cases."
+          description="Please check your connection and try again."
+          action={
+            <Button size="small" onClick={retry}>
+              Retry
+            </Button>
+          }
+          style={{ maxWidth: 720 }}
+        />
+      )
+    }
+
+    if (!data) return null
+
+    if (data.page.totalElements === 0) {
+      return (
+        <Flex justify="center" style={{ padding: 48 }}>
+          {/* The previous filter matched nothing; wait for the new one rather than repeat its empty state. */}
+          {loading || !request.status ? (
+            <Spin size="large" description="Loading cases…" />
+          ) : (
+            <Empty description={`No ${STATUS_NAMES[request.status]} cases found.`}>
+              <Button onClick={() => changeStatus(undefined)}>Show All Statuses</Button>
+            </Empty>
+          )}
+        </Flex>
+      )
+    }
+
+    return (
+      <>
+        {isDesktop ? (
+          <CaseTable cases={data.content} loading={loading} />
+        ) : (
+          <CaseCards cases={data.content} loading={loading} />
+        )}
+        <CasePagination
+          page={data.page}
+          disabled={loading}
+          compact={!isDesktop}
+          onChange={(page, size) => setRequest({ ...request, page, size })}
+        />
+      </>
+    )
+  }
 }
 
 function MyCasesPage() {

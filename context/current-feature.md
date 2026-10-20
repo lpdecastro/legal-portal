@@ -1,28 +1,18 @@
-# Current Feature: PROF-02-02 Change Password UI
+# Current Feature
 
-Change Password form on the Profile & Settings page.
+<!-- Feature name and short description -->
 
 ## Status
 
-In Progress
+<!-- Not Started / In Progress / Completed -->
 
 ## Goals
 
-- Current password, new password and confirm password fields on the Settings page (`/settings`, replacing its placeholder; `/profile` keeps personal details).
-- All fields required; new password 12+ characters (and ≤72 bytes, like registration); confirm must match new password.
-- Show/hide controls on every password field.
-- Validation and API errors displayed (field errors under fields, others in an alert).
-- Success confirmation; password fields cleared after a successful change.
-- Duplicate submissions prevented.
-- Passwords never persisted in browser storage.
-- RTL + MSW tests cover success, validation and API errors.
+<!-- Goals and requirements -->
 
 ## Notes
 
-- API: `PATCH /api/v1/clients/me/password` (PROF-02-01) takes `{ currentPassword, newPassword, confirmPassword }`, returns 204; session stays signed in.
-- Errors: 400 `VALIDATION_ERROR` with `fieldErrors` (incl. `confirmPassword` "Passwords do not match", `newPassword` "New password must differ from the current password"); 403 `INCORRECT_PASSWORD` "Current password is incorrect." (distinct from CSRF `FORBIDDEN`); 401 → login.
-- Passwords not trimmed. Needs a PATCH-with-204 client helper (existing: `patchJson`, `postNoContent`, `deleteNoContent`).
-- Reuse `useFormApiErrors` and the in-flight ref guard pattern from `useUpdateProfile`.
+<!-- Any extra notes -->
 
 ## History
 
@@ -74,3 +64,4 @@ In Progress
 - **PROF-01-02: Update Client Profile API** (2026-10-20) — Authenticated, CSRF-protected `PATCH /api/v1/clients/me` (`ClientProfileController.update` → `ClientProfileService.updateProfile`) updates the session's client's first name, last name and phone and returns 200 `ClientProfileResponse` `{ firstName, lastName, email, phone }`; `UpdateProfileRequest` follows `UpdateCaseRequest`'s partial-update semantics (omitted fields unchanged, explicit `null` or blank clears `phone`, names can't be cleared — 400 "… is required"), values trimmed; email isn't a request field, so it can't change (ignored if sent); names ≤100, phone ≤30 with digits, spaces, parentheses, hyphens and a leading `+` (400 `VALIDATION_ERROR` with `fieldErrors`); unauthenticated/suspended/disabled/deleted 401, missing profile 404 `PROFILE_NOT_FOUND`, missing/invalid CSRF 403; `ClientProfile.updateDetails`; `UpdateClientProfileIntegrationTest` (rows unchanged on every rejection).
 - **PROF-01-03: View and Edit Profile UI** (2026-10-21) — `ProfilePage` on `/profile` loads the client's profile via `fetchProfile()` (`api/profile.ts`, `ClientProfile`/`UpdateProfileRequest` types) and `useProfile` (TanStack Query, key `['profile']`); loading `Spin` "Loading profile…" (also during Retry), error `Alert` with Retry; `ProfileForm` (`components/`, keyed by the profile's values so a saved or reloaded profile resets it) edits first name, last name (required, whitespace-only rejected, ≤100) and phone (optional, ≤30, digits/spaces/parentheses/hyphens with a leading `+`, same pattern and messages as the API) with email shown read-only; Save sends `PATCH /api/v1/clients/me` via `updateProfile()` and `useUpdateProfile` with only changed fields, trimmed, a cleared phone as `null`; no changes shows "No changes to save." without a request; Cancel restores the loaded values and clears errors; form disabled and Save loading while saving, in-flight ref guard (resolves `undefined` for ignored duplicates); success shows "Profile updated.", updates the query cache and the signed-in client's name in auth state (profile menu); API `fieldErrors` under fields, other errors in an alert with values kept; new generic `useFormApiErrors(form, fields)` hook, `useCaseFormErrors` now wraps it; `ProfilePage` RTL + MSW tests (view, edit, cleared phone, no changes, cancel, validation, duplicate submit, API/network errors, load Retry, persistence after refresh, 401 → login); `docs/learning-notes.md` added.
 - **PROF-02-01: Change Password API** (2026-10-21) — Authenticated, CSRF-protected `PATCH /api/v1/clients/me/password` (`ClientProfileController.changePassword` → `ChangePasswordService`) takes `{ currentPassword, newPassword, confirmPassword }` (`ChangePasswordRequest`, passwords not trimmed, `toString` hides them) and returns 204, replacing the BCrypt hash via `User.changePasswordHash`; the session stays signed in, the old password stops working; check order: Bean Validation 400 (all three required, new password 12+ chars, ≤72 bytes) → confirmation mismatch 400 `confirmPassword` "Passwords do not match" → wrong current password 403 `INCORRECT_PASSWORD` "Current password is incorrect." (`IncorrectPasswordException`, new code in `project-overview.md`, distinct from CSRF `FORBIDDEN`) → new equal to current 400 `newPassword` "New password must differ from the current password" (checked only after the current password is verified, so it can't reveal it); unauthenticated/suspended/disabled/deleted 401, missing CSRF 403; `ChangePasswordIntegrationTest` (hash unchanged on every rejection, passwords absent from logs); backlog BKL-06 (rate-limit wrong current passwords, end other sessions).
+- **PROF-02-02: Change Password UI** (2026-10-21) — `SettingsPage` on `/settings` (replacing its placeholder; personal details stay on `/profile`) shows `ChangePasswordForm` (`components/`): current, new and confirm new password (antd `Input.Password` show/hide toggles, `current-password`/`new-password` autocomplete, hidden `username` field with the client's email for password managers); all required (current password whitespace-only rejected), new password 12+ chars and ≤72 bytes, confirmation must match; rules shared with `RegisterPage` via `utils/passwordRules.ts` (`newPasswordRules`, `confirmPasswordRules`); Change Password sends `PATCH /api/v1/clients/me/password` via new `patchNoContent` client helper, `changePassword()` (`api/profile.ts`, `ChangePasswordRequest`) and `useChangePassword` (in-flight ref guard, resolves `false` for ignored duplicates, nothing cached), passwords untrimmed; form disabled and button loading while saving; 204 shows "Password changed." and clears the fields; 403 `INCORRECT_PASSWORD` shown under current password, API `fieldErrors` under fields (via `useFormApiErrors`), other errors in an alert with values kept, 401 → login; passwords never in browser storage; `SettingsPage` RTL + MSW tests.

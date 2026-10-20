@@ -118,6 +118,23 @@ class CaseService {
         return CaseResponse.from(legalCaseRepository.saveAndFlush(legalCase));
     }
 
+    /**
+     * Closes one of the client's own submitted cases. Ownership is checked before status, and the row is locked while
+     * it is checked, as for submissions, so of two concurrent closes only the first succeeds.
+     */
+    @Transactional
+    CaseResponse closeCase(UUID userId, UUID caseId) {
+        ClientProfile client = findActiveClient(userId);
+        LegalCase legalCase = legalCaseRepository.findLockedByIdAndClientIdAndDeletedAtIsNull(caseId, client.getId())
+            .orElseThrow(CaseNotFoundException::new);
+        if (legalCase.getStatus() != CaseStatus.SUBMITTED) {
+            throw new InvalidCaseStateException("Only submitted cases can be closed.");
+        }
+        legalCase.close();
+        // Flushing runs @PreUpdate, so the response carries the new updatedAt
+        return CaseResponse.from(legalCaseRepository.saveAndFlush(legalCase));
+    }
+
     /** The submission rules, checked against the stored draft; messages match Create Draft's where they overlap. */
     private List<FieldErrorDetail> submissionErrors(LegalCase legalCase) {
         List<FieldErrorDetail> errors = new ArrayList<>();

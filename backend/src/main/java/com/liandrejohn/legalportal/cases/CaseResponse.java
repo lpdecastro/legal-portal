@@ -5,12 +5,12 @@ import java.util.UUID;
 
 /** A case as returned to its owner. */
 public record CaseResponse(UUID id, String title, UUID categoryId, String description, String location,
-        CaseStatus status, Instant createdAt, Instant updatedAt, Instant submittedAt) {
+        CaseStatus status, Instant createdAt, Instant updatedAt, Instant submittedAt, Instant closedAt) {
 
     static CaseResponse from(LegalCase legalCase) {
         return new CaseResponse(legalCase.getId(), legalCase.getTitle(), legalCase.getCategory().getId(),
                 legalCase.getDescription(), legalCase.getLocation(), legalCase.getStatus(), legalCase.getCreatedAt(),
-                legalCase.getUpdatedAt(), legalCase.getSubmittedAt());
+                legalCase.getUpdatedAt(), legalCase.getSubmittedAt(), legalCase.getClosedAt());
     }
 
 }

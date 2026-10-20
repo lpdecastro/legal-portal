@@ -1,18 +1,27 @@
-# Current Feature
+# Current Feature: CASE-08-01 Close Case API
 
-<!-- Feature name and short description -->
+Allow authenticated clients to close their own submitted cases via `POST /api/v1/cases/{id}/close`.
 
 ## Status
 
-<!-- Not Started / In Progress / Completed -->
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- Authenticated, CSRF-protected `POST /api/v1/cases/{id}/close` returns 200 with the closed case (`status: CLOSED`, `closedAt` set).
+- Only the case owner can close it; other clients' and nonexistent cases return 404 `CASE_NOT_FOUND`.
+- Only `SUBMITTED` cases can be closed; `DRAFT` or `CLOSED` cases return 409 `INVALID_CASE_STATE`.
+- Status updated to `CLOSED` and `closed_at` set.
+- Unauthenticated requests return 401; errors follow the standard Problem Details format.
+- Automated backend tests cover: closing own submitted case, returned status and closure date, 409 for draft/closed, 404 for another client's case, 401 unauthenticated.
 
 ## Notes
 
-<!-- Any extra notes -->
+- Spec: `context/epics/03-case-management/stories/CASE-08-close-case/tasks/CASE-08-01-close-case-api.md`.
+- Spec response shows `{ id, status, closedAt }`; follow Submit Case (CASE-07-01) and return the full `CaseResponse` with a new `closedAt` field (`null` until closed).
+- `closed_at` column already exists (V4) and is mapped on `LegalCase`.
+- Mirror `submitDraft`: check order 404 → 409; deleted cases 404; non-UUID IDs 400; missing/invalid CSRF 403; suspended/disabled/deleted accounts 401; lock the row (`findLockedByIdAndClientIdAndDeletedAtIsNull`) so concurrent closes succeed once; `@PreUpdate` refreshes `updated_at`, `created_at`/`submitted_at` kept; rows unchanged on every rejection.
+- Dependencies: authentication and CSRF protection (done).
 
 ## History
 

@@ -96,6 +96,12 @@ public class LegalCase {
         submittedAt = Instant.now().truncatedTo(ChronoUnit.MICROS);
     }
 
+    /** Moves the submitted case to {@code CLOSED}. Callers check that it is submitted. */
+    public void close() {
+        status = CaseStatus.CLOSED;
+        closedAt = Instant.now().truncatedTo(ChronoUnit.MICROS);
+    }
+
     /** Soft-deletes the case; the row stays and owner lookups stop finding it. Callers check that it is a draft. */
     public void softDelete() {
         deletedAt = Instant.now().truncatedTo(ChronoUnit.MICROS);

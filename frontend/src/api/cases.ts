@@ -29,6 +29,8 @@ export interface LegalCase {
   updatedAt: string
   // Null until the case is submitted.
   submittedAt: string | null
+  // Null until the case is closed.
+  closedAt: string | null
 }
 
 // One row of the client's case list; `category` is the category name.
@@ -77,6 +79,12 @@ export function deleteCase(id: string): Promise<void> {
 // incomplete drafts 400 VALIDATION_ERROR with every failing field.
 export function submitCase(id: string): Promise<LegalCase> {
   return postForJson<LegalCase>(`${casePath(id)}/submit`)
+}
+
+// Closes one of the signed-in client's submitted cases and returns it as CLOSED; drafts and closed cases answer 409
+// INVALID_CASE_STATE.
+export function closeCase(id: string): Promise<LegalCase> {
+  return postForJson<LegalCase>(`${casePath(id)}/close`)
 }
 
 // True when a case load failed because the case is missing or inaccessible: 404 covers other clients', deleted and

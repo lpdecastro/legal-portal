@@ -1,12 +1,13 @@
 import { Alert, Button, Card, Descriptions, Flex, Spin, Typography } from 'antd'
 import type { DescriptionsProps } from 'antd'
-import { ArrowLeftOutlined, CloseCircleOutlined, EditOutlined } from '@ant-design/icons'
+import { ArrowLeftOutlined, EditOutlined } from '@ant-design/icons'
 import { Link, useNavigate, useParams } from 'react-router'
 import { isCaseNotFound } from '../api/cases'
 import type { LegalCase } from '../api/cases'
 import type { LegalCategory } from '../api/legalCategories'
 import CaseNotFound from '../components/CaseNotFound'
 import CaseStatusTag from '../components/CaseStatusTag'
+import CloseCaseButton from '../components/CloseCaseButton'
 import DeleteCaseButton from '../components/DeleteCaseButton'
 import SubmitCaseButton from '../components/SubmitCaseButton'
 import { useCase } from '../hooks/useCase'
@@ -31,8 +32,7 @@ interface CaseActionsProps {
   onStale: () => void
 }
 
-// Edit, Delete and Submit for drafts; Close for submitted cases; nothing once closed.
-// Close stays disabled until its flow lands (CASE-08-02).
+// Edit, Delete and Submit for drafts; Close Case for submitted cases; nothing once closed.
 function CaseActions({ legalCase, categoryActive, categoriesLoading, onChanged, onStale }: CaseActionsProps) {
   const navigate = useNavigate()
 
@@ -59,11 +59,7 @@ function CaseActions({ legalCase, categoryActive, categoriesLoading, onChanged, 
   }
 
   if (legalCase.status === 'SUBMITTED') {
-    return (
-      <Button icon={<CloseCircleOutlined />} disabled>
-        Close
-      </Button>
-    )
+    return <CloseCaseButton caseId={legalCase.id} onClosed={onChanged} onStale={onStale} />
   }
 
   return null
@@ -90,6 +86,7 @@ function CaseDetails({ legalCase, onChanged, onStale }: CaseDetailsProps) {
     { key: 'location', label: 'Location', children: legalCase.location ?? NOT_PROVIDED },
     { key: 'createdAt', label: 'Created', children: formatDate(legalCase.createdAt) },
     { key: 'updatedAt', label: 'Last updated', children: formatDate(legalCase.updatedAt) },
+    ...(legalCase.closedAt ? [{ key: 'closedAt', label: 'Closed on', children: formatDate(legalCase.closedAt) }] : []),
     {
       key: 'description',
       label: 'Description',

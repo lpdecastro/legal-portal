@@ -1,18 +1,30 @@
-# Current Feature
+# Current Feature: CASE-08-02 Close Case UI
 
-<!-- Feature name and short description -->
+Allow clients to close a submitted case from the Case Details page (`/cases/:id`).
 
 ## Status
 
-<!-- Not Started / In Progress / Completed -->
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- Show Close Case button only for `SUBMITTED` cases.
+- Show a confirmation dialog before closing.
+- Call `POST /api/v1/cases/{id}/close` upon confirmation.
+- Disable the action while the request is processing.
+- Update status to `CLOSED` and display the closure date.
+- Show a success message after closing.
+- Show an error message if the request fails.
+- Hide Close Case button after successful closure.
+- Support desktop and mobile layouts.
+- Tests: close after confirmation; cancel keeps case unchanged; updated status and closure date shown; failed requests show an error without changing status; draft and closed cases have no Close Case button.
 
 ## Notes
 
-<!-- Any extra notes -->
+- Type: FE. Story: CASE-08 – Close Case. Depends on CASE-04-02 (Case Details Page), CASE-08-01 (Close Case API), auth/protected routes.
+- API returns 200 `CaseResponse` with `closedAt` (not the spec's `{ id, status, closedAt }`); add `closedAt` to `LegalCase`. Errors: 404 `CASE_NOT_FOUND`, 409 `INVALID_CASE_STATE` "Only submitted cases can be closed.", 401 → login.
+- Close button already renders disabled on submitted cases (CASE-04-02). Follow `SubmitCaseButton`/`DeleteCaseButton` patterns: own component file, `useCloseCase` hook with in-flight ref guard, `postForJson` + `closeCase()` in `api/cases.ts`, locked modal while closing, update page in place via `useCase.replace`.
+- Done when all ACs met and FE tests pass.
 
 ## History
 

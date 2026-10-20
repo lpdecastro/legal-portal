@@ -27,6 +27,7 @@ const DRAFT = {
   createdAt: '2026-10-17T10:00:00Z',
   updatedAt: '2026-10-18T10:00:00Z',
   submittedAt: null,
+  closedAt: null,
 }
 
 const CSRF = { token: 'csrf-token', headerName: 'X-XSRF-TOKEN' }
@@ -104,6 +105,25 @@ async function openSubmitDialog() {
 const incompleteDialog = () => screen.findByRole('dialog', { name: "This draft isn't ready to submit" })
 
 const submitConfirm = (dialog: HTMLElement) => within(dialog).getByRole('button', { name: /submit/i })
+
+function mockClose(resolver: Parameters<typeof http.post>[1]) {
+  server.use(
+    http.get('*/api/v1/auth/csrf', () => HttpResponse.json(CSRF)),
+    http.post(`*/api/v1/cases/${CASE_ID}/close`, resolver),
+  )
+}
+
+const CLOSED_AT = '2026-10-20T10:00:00Z'
+const CLOSED = { ...SUBMITTED, status: 'CLOSED', updatedAt: CLOSED_AT, closedAt: CLOSED_AT }
+
+async function openCloseDialog() {
+  const user = userEvent.setup()
+  await user.click(await screen.findByRole('button', { name: /close case/i }))
+  const dialog = await screen.findByRole('dialog', { name: 'Close this case?' })
+  return { user, dialog }
+}
+
+const closeConfirm = (dialog: HTMLElement) => within(dialog).getByRole('button', { name: /close case/i })
 
 const button = (name: string) => screen.queryByRole('button', { name: new RegExp(name, 'i') })
 
@@ -517,6 +537,144 @@ describe('CaseDetailsPage', () => {
 
       const { user, dialog } = await openSubmitDialog()
       await user.click(submitConfirm(dialog))
+
+      expect(await screen.findByRole('heading', { name: 'Log in' })).toBeInTheDocument()
+    })
+  })
+  describe('close', () => {
+    it('asks for confirmation before closing a submitted case', async () => {
+      mockApi({ get: () => HttpResponse.json(SUBMITTED) })
+      renderPage()
+
+      const { dialog } = await openCloseDialog()
+
+      expect(within(dialog).getByText("A closed case can't be reopened.")).toBeInTheDocument()
+    })
+
+    it('does not close when the client cancels', async () => {
+      let calls = 0
+      mockApi({ get: () => HttpResponse.json(SUBMITTED) })
+      mockClose(() => {
+        calls += 1
+        return HttpResponse.json(CLOSED)
+      })
+      renderPage()
+
+      const { user, dialog } = await openCloseDialog()
+      await user.click(within(dialog).getByRole('button', { name: /cancel/i }))
+
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+      expect(calls).toBe(0)
+      expect(screen.getByText('Submitted')).toBeInTheDocument()
+      expect(button('close case')).toBeInTheDocument()
+    })
+
+    it('closes with the CSRF token, confirms and shows the case as closed with its closure date', async () => {
+      let csrfHeader: string | null = null
+      mockApi({ get: () => HttpResponse.json(SUBMITTED) })
+      mockClose(({ request }) => {
+        csrfHeader = request.headers.get(CSRF.headerName)
+        return HttpResponse.json(CLOSED)
+      })
+      renderPage()
+
+      const { user, dialog } = await openCloseDialog()
+      await user.click(closeConfirm(dialog))
+
+      expect(await screen.findByText('Case closed.')).toBeInTheDocument()
+      expect(csrfHeader).toBe(CSRF.token)
+      expect(screen.getByText('Closed')).toBeInTheDocument()
+      expect(screen.getByText('Closed on')).toBeInTheDocument()
+      expect(screen.getAllByText('Oct 20, 2026')).toHaveLength(2)
+      expect(button('close case')).not.toBeInTheDocument()
+    })
+
+    it('shows a loading indicator and sends only one request while closing', async () => {
+      let calls = 0
+      mockApi({ get: () => HttpResponse.json(SUBMITTED) })
+      mockClose(async () => {
+        calls += 1
+        await delay('infinite')
+        return HttpResponse.json(CLOSED)
+      })
+      renderPage()
+
+      const { user, dialog } = await openCloseDialog()
+      const confirm = closeConfirm(dialog)
+      await user.click(confirm)
+
+      await waitFor(() => expect(confirm).toHaveClass('ant-btn-loading'))
+      await user.click(confirm)
+      expect(within(dialog).getByRole('button', { name: /cancel/i })).toBeDisabled()
+      expect(calls).toBe(1)
+    })
+
+    it('shows an error and leaves the case unchanged when the API fails', async () => {
+      mockApi({ get: () => HttpResponse.json(SUBMITTED) })
+      mockClose(() => problem(500, 'INTERNAL_ERROR', 'Unexpected error.'))
+      renderPage()
+
+      const { user, dialog } = await openCloseDialog()
+      await user.click(closeConfirm(dialog))
+
+      expect(await screen.findByText("We couldn't close this case. Please try again.")).toBeInTheDocument()
+      expect(screen.getByText('Submitted')).toBeInTheDocument()
+      expect(screen.queryByText('Closed on')).not.toBeInTheDocument()
+      expect(button('close case')).toBeInTheDocument()
+    })
+
+    it('says so and refreshes the case when it was already closed', async () => {
+      let loads = 0
+      mockApi({
+        get: () => {
+          loads += 1
+          return HttpResponse.json(loads === 1 ? SUBMITTED : CLOSED)
+        },
+      })
+      mockClose(() => problem(409, 'INVALID_CASE_STATE', 'Only submitted cases can be closed.'))
+      renderPage()
+
+      const { user, dialog } = await openCloseDialog()
+      await user.click(closeConfirm(dialog))
+
+      expect(await screen.findByText('This case has already been closed.')).toBeInTheDocument()
+      expect(await screen.findByText('Closed on')).toBeInTheDocument()
+      expect(button('close case')).not.toBeInTheDocument()
+    })
+
+    it('says so and refreshes when the case was deleted or is inaccessible', async () => {
+      let loads = 0
+      mockApi({
+        get: () => {
+          loads += 1
+          return loads === 1 ? HttpResponse.json(SUBMITTED) : problem(404, 'CASE_NOT_FOUND', 'Case not found.')
+        },
+      })
+      mockClose(() => problem(404, 'CASE_NOT_FOUND', 'Case not found.'))
+      renderPage()
+
+      const { user, dialog } = await openCloseDialog()
+      await user.click(closeConfirm(dialog))
+
+      expect(
+        await screen.findByText('This case no longer exists or you no longer have access to it.'),
+      ).toBeInTheDocument()
+      expect(await screen.findByText('Case not found')).toBeInTheDocument()
+    })
+
+    it('sends the client to the login page when the session has expired', async () => {
+      function AppRoutes() {
+        return useRoutes(routes)
+      }
+      mockApi({ get: () => HttpResponse.json(SUBMITTED) })
+      mockClose(() => problem(401, 'UNAUTHORIZED', 'Authentication required.'))
+      renderWithProviders(<AppRoutes />, {
+        initialEntries: [caseDetailsPath(CASE_ID)],
+        user: USER,
+      })
+
+      const { user, dialog } = await openCloseDialog()
+      await user.click(closeConfirm(dialog))
 
       expect(await screen.findByRole('heading', { name: 'Log in' })).toBeInTheDocument()
     })

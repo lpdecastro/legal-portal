@@ -1,18 +1,28 @@
-# Current Feature
+# Current Feature: DASH-01-02: Case Statistics UI
 
-<!-- Feature name and short description -->
+Display case statistics on the client dashboard using the Dashboard Summary API.
 
 ## Status
 
-<!-- Not Started / In Progress / Completed -->
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- Display total, draft, submitted, and closed case counts.
+- Fetch data from `GET /api/v1/dashboard/summary` using TanStack Query.
+- Display zero for statuses with no cases.
+- Show loading and error states.
+- Ensure statistics are responsive on desktop and mobile.
+- Share the dashboard API response with the Recent Cases UI to avoid duplicate requests.
 
 ## Notes
 
-<!-- Any extra notes -->
+- Spec: `context/epics/04-client-dashboard/stories/DASH-01-case-statistics/tasks/DASH-01-02-case-statistics-ui.md`.
+- API (DASH-01-01): `{ statistics: { total, draft, submitted, closed }, recentCases: [{ id, title, status, createdAt }] }`; 401 when signed out.
+- TanStack Query is not installed yet — adding `@tanstack/react-query` (and a `QueryClientProvider`, also in `renderWithProviders`) is part of this task. Existing data hooks (`useCases`, `useCase`, …) use hand-rolled state; don't migrate them here.
+- Sharing with Recent Cases (DASH-02-01): one query key / `useDashboardSummary` hook that both UIs read, so the dashboard makes a single request.
+- Reuse existing patterns: error `Alert` with Retry, `Spin` loading, status labels matching `CaseStatusTag`.
+- Implemented: `api/dashboard.ts`, `query/queryClient.ts` (`retry: false`), `useDashboardSummary` (key `['dashboard','summary']`), `CaseStatistics` (antd `Statistic` cards, 2 per row on mobile, 4 from `lg`); `QueryClientProvider` in `App` and `renderWithProviders` (fresh client per test); `AuthProvider` clears the query cache on sign-out; `DashboardPage` tests; `RequireAuth` tests mock the summary.
 
 ## History
 

@@ -10,6 +10,8 @@ import AuthProvider from './AuthProvider'
 
 const USER = { id: 'u1', email: 'john@example.com', firstName: 'John', lastName: 'Doe' }
 
+const EMPTY_SUMMARY = { statistics: { total: 0, draft: 0, submitted: 0, closed: 0 }, recentCases: [] }
+
 const UNAUTHORIZED = () =>
   HttpResponse.json(
     { status: 401, errorCode: 'UNAUTHORIZED', detail: 'Authentication required.' },
@@ -44,8 +46,9 @@ describe('protected routes', () => {
     ['/cases/new', 'Create Draft Case'],
     ['/profile', 'Profile'],
   ])('lets a signed-in client open %s', async (path, title) => {
-    // My Cases loads the cases; Create Draft loads the legal categories.
+    // Dashboard loads the summary; My Cases loads the cases; Create Draft loads the legal categories.
     server.use(
+      http.get('*/api/v1/dashboard/summary', () => HttpResponse.json(EMPTY_SUMMARY)),
       http.get('*/api/v1/cases', () => HttpResponse.json({ content: [], page: { size: 10, number: 0, totalElements: 0, totalPages: 0 } })),
       http.get('*/api/v1/legal-categories', () => HttpResponse.json([])),
     )
@@ -87,7 +90,10 @@ describe('protected routes', () => {
   })
 
   it('redirects to the login page when the session expires while the client is signed in', async () => {
-    server.use(http.get('*/api/v1/cases', UNAUTHORIZED))
+    server.use(
+      http.get('*/api/v1/cases', UNAUTHORIZED),
+      http.get('*/api/v1/dashboard/summary', () => HttpResponse.json(EMPTY_SUMMARY)),
+    )
     renderWithProviders(<AppRoutes />, { initialEntries: ['/dashboard'], user: USER })
     expect(await screen.findByRole('heading', { name: 'Dashboard' })).toBeInTheDocument()
 

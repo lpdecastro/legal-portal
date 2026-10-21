@@ -1,26 +1,18 @@
-# Current Feature: FND-09 Playwright E2E Setup
+# Current Feature
 
-Set up automated E2E testing with Playwright in `frontend/`.
+<!-- Feature name and short description -->
 
 ## Status
 
-In Progress
+<!-- Not Started / In Progress / Completed -->
 
 ## Goals
 
-- Playwright Test installed with Chromium; base URL, timeouts and retries configured.
-- `e2e/` directory with reusable fixtures.
-- Tests run against the real frontend, backend and a dedicated test database.
-- `npm run test:e2e` runs the tests; `npm run test:e2e:ui` opens UI mode.
-- Smoke test verifies the application loads.
-- HTML report, plus screenshots and traces on failure.
-- Generated test artifacts excluded from Git.
-- Existing GitHub Actions CI runs E2E tests on every push to `main` and fails if any fail.
+<!-- Goals and requirements -->
 
 ## Notes
 
-- Spec: `context/epics/01-foundation/tasks/FND-09-playwright-e2e-setup.md`.
-- Out of scope: feature-specific E2E tests, auth fixtures and test data management, performance and visual regression testing.
+<!-- Any extra notes -->
 
 ## History
 
@@ -73,3 +65,4 @@ In Progress
 - **PROF-01-03: View and Edit Profile UI** (2026-10-21) — `ProfilePage` on `/profile` loads the client's profile via `fetchProfile()` (`api/profile.ts`, `ClientProfile`/`UpdateProfileRequest` types) and `useProfile` (TanStack Query, key `['profile']`); loading `Spin` "Loading profile…" (also during Retry), error `Alert` with Retry; `ProfileForm` (`components/`, keyed by the profile's values so a saved or reloaded profile resets it) edits first name, last name (required, whitespace-only rejected, ≤100) and phone (optional, ≤30, digits/spaces/parentheses/hyphens with a leading `+`, same pattern and messages as the API) with email shown read-only; Save sends `PATCH /api/v1/clients/me` via `updateProfile()` and `useUpdateProfile` with only changed fields, trimmed, a cleared phone as `null`; no changes shows "No changes to save." without a request; Cancel restores the loaded values and clears errors; form disabled and Save loading while saving, in-flight ref guard (resolves `undefined` for ignored duplicates); success shows "Profile updated.", updates the query cache and the signed-in client's name in auth state (profile menu); API `fieldErrors` under fields, other errors in an alert with values kept; new generic `useFormApiErrors(form, fields)` hook, `useCaseFormErrors` now wraps it; `ProfilePage` RTL + MSW tests (view, edit, cleared phone, no changes, cancel, validation, duplicate submit, API/network errors, load Retry, persistence after refresh, 401 → login); `docs/learning-notes.md` added.
 - **PROF-02-01: Change Password API** (2026-10-21) — Authenticated, CSRF-protected `PATCH /api/v1/clients/me/password` (`ClientProfileController.changePassword` → `ChangePasswordService`) takes `{ currentPassword, newPassword, confirmPassword }` (`ChangePasswordRequest`, passwords not trimmed, `toString` hides them) and returns 204, replacing the BCrypt hash via `User.changePasswordHash`; the session stays signed in, the old password stops working; check order: Bean Validation 400 (all three required, new password 12+ chars, ≤72 bytes) → confirmation mismatch 400 `confirmPassword` "Passwords do not match" → wrong current password 403 `INCORRECT_PASSWORD` "Current password is incorrect." (`IncorrectPasswordException`, new code in `project-overview.md`, distinct from CSRF `FORBIDDEN`) → new equal to current 400 `newPassword` "New password must differ from the current password" (checked only after the current password is verified, so it can't reveal it); unauthenticated/suspended/disabled/deleted 401, missing CSRF 403; `ChangePasswordIntegrationTest` (hash unchanged on every rejection, passwords absent from logs); backlog BKL-06 (rate-limit wrong current passwords, end other sessions).
 - **PROF-02-02: Change Password UI** (2026-10-21) — `SettingsPage` on `/settings` (replacing its placeholder; personal details stay on `/profile`) shows `ChangePasswordForm` (`components/`): current, new and confirm new password (antd `Input.Password` show/hide toggles, `current-password`/`new-password` autocomplete, hidden `username` field with the client's email for password managers); all required (current password whitespace-only rejected), new password 12+ chars and ≤72 bytes, confirmation must match; rules shared with `RegisterPage` via `utils/passwordRules.ts` (`newPasswordRules`, `confirmPasswordRules`); Change Password sends `PATCH /api/v1/clients/me/password` via new `patchNoContent` client helper, `changePassword()` (`api/profile.ts`, `ChangePasswordRequest`) and `useChangePassword` (in-flight ref guard, resolves `false` for ignored duplicates, nothing cached), passwords untrimmed; form disabled and button loading while saving; 204 shows "Password changed." and clears the fields; 403 `INCORRECT_PASSWORD` shown under current password, API `fieldErrors` under fields (via `useFormApiErrors`), other errors in an alert with values kept, 401 → login; passwords never in browser storage; `SettingsPage` RTL + MSW tests.
+- **FND-09: Playwright E2E Setup** (2026-10-21) — `@playwright/test` (Chromium) in `frontend/`: `playwright.config.ts` (30 s test / 5 s assertion timeouts, 2 retries and `forbidOnly` in CI, fully parallel), specs in `e2e/` importing `test`/`expect` from `e2e/fixtures.ts` (auto fixture fails tests on uncaught page errors); dedicated test stack on its own ports so dev servers and data are untouched — `docker-compose.e2e.yml` PostgreSQL 17 on `5433` (tmpfs, `--force-recreate` each run, Flyway migrates), backend on `8081` (ready on `/actuator/health`), Vite on `5174` with new `API_PROXY_TARGET` proxy override; local runs reuse running servers; `npm run test:e2e` / `test:e2e:ui`; HTML report, screenshots and traces on failure (git-ignored); `smoke.spec.ts` checks the API through the proxy and the signed-out redirect to `/login`; new `E2E` CI job (Java + Node, Playwright Chromium, uploads report/artifacts); Vitest excludes `e2e/`, separate ESLint block and `tsconfig.e2e.json` for Node code; docs in `docs/testing-infrastructure.md`; `ProfileMenu` logout loading-state test made deterministic (response held until the spinner is checked, dashboard summary mocked); backlog BKL-07 (feature E2E tests).

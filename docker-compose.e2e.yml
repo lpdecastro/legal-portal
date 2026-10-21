@@ -1,0 +1,21 @@
+# Dedicated PostgreSQL for the Playwright E2E tests, separate from the development database.
+# Started by frontend/playwright.config.ts; data lives in tmpfs, so each run starts empty and Flyway migrates it.
+name: legal-portal-e2e
+
+services:
+  postgres-e2e:
+    image: postgres:17-alpine
+    environment:
+      # Throwaway test-only credentials
+      POSTGRES_DB: legal_portal_e2e
+      POSTGRES_USER: legal_portal_e2e
+      POSTGRES_PASSWORD: legal_portal_e2e
+    ports:
+      - "5433:5432"
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 2s
+      timeout: 5s
+      retries: 30

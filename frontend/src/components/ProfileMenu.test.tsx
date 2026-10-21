@@ -1,6 +1,6 @@
 import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { http, HttpResponse, delay } from 'msw'
+import { http, HttpResponse } from 'msw'
 import { useNavigate, useRoutes } from 'react-router'
 import { describe, expect, it } from 'vitest'
 import { routes } from '../routes/router'
@@ -91,15 +91,27 @@ describe('ProfileMenu', () => {
     })
 
     it('shows a loading state while logging out', async () => {
+      // Held until the spinner is checked, so a slow test run can't miss it
+      let respond = () => {}
+      const responded = new Promise<void>((resolve) => {
+        respond = resolve
+      })
       mockLogout(async () => {
-        await delay(50)
+        await responded
         return new HttpResponse(null, { status: 204 })
       })
+      // The dashboard behind the menu loads while logout is pending
+      server.use(
+        http.get('*/api/v1/dashboard/summary', () =>
+          HttpResponse.json({ statistics: { total: 0, draft: 0, submitted: 0, closed: 0 }, recentCases: [] }),
+        ),
+      )
       renderSignedIn()
 
       await clickLogout()
 
       expect(await screen.findByRole('button', { name: 'Logging out' })).toBeInTheDocument()
+      respond()
       expect(await loginHeading()).toBeInTheDocument()
     })
 

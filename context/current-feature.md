@@ -1,18 +1,26 @@
-# Current Feature
+# Current Feature: FND-09 Playwright E2E Setup
 
-<!-- Feature name and short description -->
+Set up automated E2E testing with Playwright in `frontend/`.
 
 ## Status
 
-<!-- Not Started / In Progress / Completed -->
+In Progress
 
 ## Goals
 
-<!-- Goals and requirements -->
+- Playwright Test installed with Chromium; base URL, timeouts and retries configured.
+- `e2e/` directory with reusable fixtures.
+- Tests run against the real frontend, backend and a dedicated test database.
+- `npm run test:e2e` runs the tests; `npm run test:e2e:ui` opens UI mode.
+- Smoke test verifies the application loads.
+- HTML report, plus screenshots and traces on failure.
+- Generated test artifacts excluded from Git.
+- Existing GitHub Actions CI runs E2E tests on every push to `main` and fails if any fail.
 
 ## Notes
 
-<!-- Any extra notes -->
+- Spec: `context/epics/01-foundation/tasks/FND-09-playwright-e2e-setup.md`.
+- Out of scope: feature-specific E2E tests, auth fixtures and test data management, performance and visual regression testing.
 
 ## History
 

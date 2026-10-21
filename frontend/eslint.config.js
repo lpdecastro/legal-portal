@@ -9,6 +9,7 @@ export default defineConfig([
   globalIgnores(['dist']),
   {
     files: ['**/*.{ts,tsx}'],
+    ignores: ['e2e/**', 'playwright.config.ts'],
     extends: [
       js.configs.recommended,
       tseslint.configs.recommended,
@@ -17,6 +18,14 @@ export default defineConfig([
     ],
     languageOptions: {
       globals: globals.browser,
+    },
+  },
+  {
+    // Playwright runs in Node; its fixture `use` callback isn't React's `use`, so no React rules here
+    files: ['e2e/**/*.ts', 'playwright.config.ts'],
+    extends: [js.configs.recommended, tseslint.configs.recommended],
+    languageOptions: {
+      globals: globals.node,
     },
   },
 ]);

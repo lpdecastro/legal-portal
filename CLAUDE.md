@@ -35,6 +35,8 @@ npm run build     # tsc -b && vite build (type-check + bundle)
 npm run lint      # eslint .
 npm run test      # vitest run (single pass)
 npm run test:watch
+npm run test:e2e      # Playwright E2E (needs Docker; starts test DB, backend, frontend)
+npm run test:e2e:ui
 npx vitest run src/components/Placeholder.test.tsx   # single file
 npm run preview
 ```

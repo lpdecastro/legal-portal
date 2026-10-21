@@ -41,3 +41,25 @@ npx vitest run src/components/Placeholder.test.tsx  # single file
 ./mvnw test
 ./mvnw test -Dtest=ClassName#methodName
 ```
+
+## E2E (Playwright)
+
+Introduced in FND-09. Docker must be running.
+
+1. `npm run test:e2e` runs `playwright test` with [`frontend/playwright.config.ts`](../frontend/playwright.config.ts) (Chromium only; 30 s test and 5 s assertion timeouts; 2 retries in CI, none locally).
+2. Before the tests, Playwright starts two web servers on their own ports, so E2E never uses the dev servers or the dev database:
+   - **Backend** on `8081`: `docker compose -f docker-compose.e2e.yml up -d --wait --force-recreate` recreates the dedicated test database (PostgreSQL 17 on `5433`, data in tmpfs, so every run starts empty and Flyway migrates it), then `./mvnw spring-boot:run` starts the API against it. Ready when `GET /actuator/health` answers.
+   - **Frontend** on `5174`: `npm run dev`, with `API_PROXY_TARGET` pointing the `/api` proxy at `8081`.
+   - Locally, servers already running on those ports are reused (the database is then not recreated). In CI they are always started.
+3. Specs live in [`frontend/e2e/`](../frontend/e2e/) and import `test`/`expect` from [`e2e/fixtures.ts`](../frontend/e2e/fixtures.ts), which fails any test whose page throws an uncaught error. Add shared fixtures there.
+4. [`e2e/smoke.spec.ts`](../frontend/e2e/smoke.spec.ts) checks the API answers through the app's proxy and the app loads (signed-out visitors land on `/login`).
+5. Results: HTML report in `playwright-report/` (`npx playwright show-report`), screenshots and traces of failed tests in `test-results/` (`npx playwright show-trace <trace.zip>`). Both are git-ignored.
+6. CI: the `E2E` job in [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) runs on every push to `main`, fails on any failed test, and uploads the report and failure artifacts.
+7. The test database container keeps running after a run; stop it with `docker compose -f docker-compose.e2e.yml down`.
+
+```bash
+# frontend/
+npm run test:e2e                       # all E2E tests
+npm run test:e2e:ui                    # Playwright UI mode
+npx playwright test e2e/smoke.spec.ts  # single file
+```
